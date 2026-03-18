@@ -1,7 +1,23 @@
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const hasRealSupabase = supabaseUrl.includes('.supabase.co') && !supabaseUrl.includes('placeholder')
+export const DEMO_CREDENTIALS = {
+  email: 'jhonathanhoyos@gmail.com',
+  password: 'prueba1234',
+}
 
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || !hasRealSupabase
+export function isDemoMode() {
+  return import.meta.env.VITE_DEMO_MODE === 'true' ||
+    localStorage.getItem('metodo_ads_demo') === 'true'
+}
+
+export function enableDemoMode() {
+  localStorage.setItem('metodo_ads_demo', 'true')
+}
+
+export function disableDemoMode() {
+  localStorage.removeItem('metodo_ads_demo')
+}
+
+// Para compatibilidad con imports existentes de DEMO_MODE
+export const DEMO_MODE = isDemoMode()
 
 export const DEMO_USER = {
   id: 'demo-user-001',

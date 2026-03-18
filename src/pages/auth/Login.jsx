@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { DEMO_CREDENTIALS } from '../../lib/demo'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -9,13 +10,21 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { signIn } = useAuth()
+  const { signIn, loginAsDemo } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    // Credenciales demo
+    if (email === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password) {
+      loginAsDemo()
+      navigate('/dashboard')
+      return
+    }
+
     const { error } = await signIn(email, password)
     if (error) {
       setError('Email o contraseña incorrectos')

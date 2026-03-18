@@ -1,16 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { DEMO_MODE, DEMO_USER, DEMO_PROFILE } from '../lib/demo'
+import { isDemoMode, enableDemoMode, disableDemoMode, DEMO_USER, DEMO_PROFILE } from '../lib/demo'
 
 const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(DEMO_MODE ? DEMO_USER : null)
-  const [profile, setProfile] = useState(DEMO_MODE ? DEMO_PROFILE : null)
-  const [loading, setLoading] = useState(!DEMO_MODE)
+  const demo = isDemoMode()
+
+  const [user, setUser]       = useState(demo ? DEMO_USER : null)
+  const [profile, setProfile] = useState(demo ? DEMO_PROFILE : null)
+  const [loading, setLoading] = useState(!demo)
 
   useEffect(() => {
-    if (DEMO_MODE) return  // skip Supabase entirely in demo mode
+    if (isDemoMode()) return
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -48,13 +50,13 @@ export function AuthProvider({ children }) {
   }
 
   async function signIn(email, password) {
-    if (DEMO_MODE) return { data: { user: DEMO_USER }, error: null }
+    if (isDemoMode()) return { data: { user: DEMO_USER }, error: null }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     return { data, error }
   }
 
   async function signUp(email, password, nombre) {
-    if (DEMO_MODE) return { data: { user: DEMO_USER }, error: null }
+    if (isDemoMode()) return { data: { user: DEMO_USER }, error: null }
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (!error && data.user) {
       await supabase.from('users').insert({
@@ -68,17 +70,26 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
-    if (DEMO_MODE) return
-    await supabase.auth.signOut()
+    disableDemoMode()
+    setUser(null)
+    setProfile(null)
+    if (!isDemoMode()) await supabase.auth.signOut()
   }
 
   async function refreshProfile() {
-    if (DEMO_MODE) return
+    if (isDemoMode()) return
     if (user) await fetchProfile(user.id)
   }
 
+  // Activar demo mode desde el login
+  function loginAsDemo() {
+    enableDemoMode()
+    setUser(DEMO_USER)
+    setProfile(DEMO_PROFILE)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, refreshProfile, loginAsDemo }}>
       {children}
     </AuthContext.Provider>
   )
