@@ -1,4 +1,7 @@
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+const hasRealSupabase = supabaseUrl.includes('.supabase.co') && !supabaseUrl.includes('placeholder')
+
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || !hasRealSupabase
 
 export const DEMO_USER = {
   id: 'demo-user-001',
