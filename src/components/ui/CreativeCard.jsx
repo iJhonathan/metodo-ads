@@ -3,7 +3,6 @@ import {
   CheckCircle2, XCircle, Download, Loader2,
   AlertCircle, RefreshCw, Copy, Check
 } from 'lucide-react'
-import { compositeAd } from '../../lib/composite'
 
 const TIPO_COLORS = {
   dolor: '#ef4444', curiosidad: '#eab308', objecion: '#f97316',
@@ -64,31 +63,18 @@ export default function CreativeCard({
   onDiscard,
   onRetry,
 }) {
-  const [downloading, setDownloading] = useState(false)
   const tipoColor = TIPO_COLORS[creative.angle?.tipo] || '#7c3aed'
 
   // Soporte para campo nuevo (titulo/cta) y campo legado (headline)
   const titulo = creative.angle?.titulo || creative.angle?.headline || ''
   const cta = creative.angle?.cta || ''
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!creative.imageUrl) return
-    setDownloading(true)
-    try {
-      const composited = await compositeAd({
-        imageUrl: creative.imageUrl,
-        angle: { ...creative.angle, titulo, cta },
-        branding,
-      })
-      const a = document.createElement('a')
-      a.href = composited
-      a.download = `metodo-ads-${creative.angle?.tipo || 'creativo'}-${Date.now()}.jpg`
-      a.click()
-    } catch (e) {
-      console.error('Error al componer imagen:', e)
-    } finally {
-      setDownloading(false)
-    }
+    const a = document.createElement('a')
+    a.href = creative.imageUrl
+    a.download = `metodo-ads-${creative.angle?.tipo || 'creativo'}-${Date.now()}.jpg`
+    a.click()
   }
 
   return (
@@ -126,10 +112,7 @@ export default function CreativeCard({
               alt={titulo}
               className="w-full h-full object-cover"
             />
-            {/* Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-            {/* Tipo badge */}
+            {/* Tipo badge — solo referencia visual */}
             <div className="absolute top-3 left-3">
               <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: tipoColor + 'dd' }}>
                 {TIPO_LABELS[creative.angle?.tipo] || creative.angle?.tipo}
@@ -141,18 +124,6 @@ export default function CreativeCard({
               <div className="absolute top-3 right-3">
                 <span className="badge border text-xs font-semibold bg-status-success/20 border-status-success/40 text-status-success">
                   Aprobado
-                </span>
-              </div>
-            )}
-
-            {/* CTA pill en imagen */}
-            {cta && (
-              <div className="absolute bottom-3 left-3">
-                <span
-                  className="text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg"
-                  style={{ backgroundColor: tipoColor }}
-                >
-                  {cta}
                 </span>
               </div>
             )}
@@ -183,11 +154,10 @@ export default function CreativeCard({
           </button>
           <button
             onClick={handleDownload}
-            disabled={downloading}
-            className="p-2 rounded-xl text-text-muted border border-border hover:border-border-hover hover:text-text-primary transition-all disabled:opacity-50"
-            title="Descargar imagen con texto"
+            className="p-2 rounded-xl text-text-muted border border-border hover:border-border-hover hover:text-text-primary transition-all"
+            title="Descargar imagen"
           >
-            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            <Download size={14} />
           </button>
           <button
             onClick={() => onApprove?.(creative)}
@@ -202,11 +172,9 @@ export default function CreativeCard({
         <div className="px-3 pb-3 pt-2">
           <button
             onClick={handleDownload}
-            disabled={downloading}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-text-secondary border border-border hover:border-border-hover hover:text-text-primary transition-all disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-text-secondary border border-border hover:border-border-hover hover:text-text-primary transition-all"
           >
-            {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-            {downloading ? 'Componiendo...' : 'Descargar imagen'}
+            <Download size={13} /> Descargar imagen
           </button>
         </div>
       )}
