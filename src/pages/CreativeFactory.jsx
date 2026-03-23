@@ -6,7 +6,8 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { callClaude, extractJSON, buildCreativesPrompt, ANGLE_TYPES } from '../lib/claude'
-import { generateImage, buildImagePrompt } from '../lib/gemini'
+import { generateImage } from '../lib/gemini'
+import { buildImagePrompt } from '../utils/buildImagePrompt'
 import { compositeAd } from '../lib/composite'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectSelector from '../components/ui/ProjectSelector'
@@ -226,7 +227,7 @@ export default function CreativeFactory() {
 
       try {
         // 1. Generar imagen de fondo
-        const imgPrompt = buildImagePrompt({ angle, project, branding })
+        const imgPrompt = buildImagePrompt(angle, project, branding)
         const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
 
         // 2. Compositar texto sobre la imagen
@@ -286,7 +287,7 @@ export default function CreativeFactory() {
       c._key === creative._key ? { ...c, generating: true, error: null } : c
     ))
     try {
-      const imgPrompt = buildImagePrompt({ angle: creative.angle, project, branding })
+      const imgPrompt = buildImagePrompt(creative.angle, project, branding)
       const rawImageUrl = await generateImage({ apiKey, prompt: imgPrompt })
       const compositeUrl = await compositeAd({ imageUrl: rawImageUrl, angle: creative.angle, branding })
       setCreatives(prev => prev.map(c =>
