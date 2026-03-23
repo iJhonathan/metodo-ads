@@ -45,6 +45,8 @@ const VARIATION_HINTS = [
 ]
 
 export function buildImagePrompt({ angle, project, branding, variationIndex = 0 }) {
+  // Soporte para campo nuevo (imagen_concepto) y legado (visual_sugerido)
+  const visualConcept = angle.imagen_concepto || angle.visual_sugerido || ''
   const style = branding?.estilo || 'modern'
   const primaryColor = branding?.colores?.[0] || ''
   const audience = branding?.publico_detallado || project?.publico || ''
@@ -65,7 +67,7 @@ export function buildImagePrompt({ angle, project, branding, variationIndex = 0 
 
   return `Professional background image for a Meta Ads creative (Facebook/Instagram ad).
 
-Visual concept: ${angle.visual_sugerido}
+Visual concept: ${visualConcept}
 Composition direction: ${variationHint}
 
 Product: ${project?.producto || 'product'}

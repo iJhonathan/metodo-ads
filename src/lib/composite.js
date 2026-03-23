@@ -78,8 +78,8 @@ export async function compositeAd({ imageUrl, angle, branding }) {
   // 3. Color de acento del branding
   const accentColor = branding?.colores?.[0] || '#7c3aed'
 
-  // 4. CTA pill (desde abajo)
-  const ctaText = CTA_BY_TYPE[angle.tipo] || 'Descubrir más →'
+  // 4. CTA pill (desde abajo) — usa el CTA generado por Claude o el predeterminado
+  const ctaText = angle.cta || CTA_BY_TYPE[angle.tipo] || 'Descubrir más →'
   ctx.font = 'bold 30px Arial, sans-serif'
   const ctaTextW = ctx.measureText(ctaText).width
   const ctaH = 56
@@ -126,7 +126,7 @@ export async function compositeAd({ imageUrl, angle, branding }) {
     var copyBlockHeight = 0
   }
 
-  // 6. Headline
+  // 6. Headline (titulo nuevo o headline legado)
   ctx.font = 'bold 58px Arial, sans-serif'
   ctx.fillStyle = '#ffffff'
   ctx.textAlign = 'left'
@@ -136,7 +136,8 @@ export async function compositeAd({ imageUrl, angle, branding }) {
   ctx.shadowBlur = 10
   ctx.shadowOffsetY = 2
 
-  const headlineLines = wrapText(ctx, angle.headline, SIZE - PAD * 2)
+  const headlineText = angle.titulo || angle.headline || ''
+  const headlineLines = wrapText(ctx, headlineText, SIZE - PAD * 2)
   const lineH = 70
   const headlineBlockH = headlineLines.length * lineH
   const headlineY = ctaY - 22 - (copyBlockHeight || 0) - 20 - headlineBlockH

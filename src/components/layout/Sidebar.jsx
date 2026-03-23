@@ -20,8 +20,7 @@ const navItems = [
   { label: 'Proyectos', icon: FolderKanban, path: '/projects' },
   { label: 'Base de Conocimiento', icon: BookOpen, path: '/knowledge' },
   { label: 'Branding Kit', icon: Palette, path: '/branding' },
-  { label: 'Ángulos de Venta', icon: Lightbulb, path: '/angles' },
-  { label: 'Fábrica Creativa', icon: Wand2, path: '/factory' },
+  { label: 'Generar Creativos', icon: Wand2, path: '/factory' },
   { label: 'Análisis Visual', icon: BarChart3, path: '/analysis' },
   { label: 'Galería Global', icon: Images, path: '/gallery' },
 ]

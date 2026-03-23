@@ -48,12 +48,12 @@ export function extractJSON(text) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Prompt: Generador de ángulos de venta
+// Prompt: Generador integrado de 50 creativos para Meta Ads
 // ──────────────────────────────────────────────────────────
 
-export function buildAnglesPrompt({ project, knowledge, branding }) {
-  const system = `Eres un experto en copywriting y publicidad digital para Meta Ads (Facebook e Instagram).
-Tu especialidad es crear ángulos de venta altamente persuasivos y originales que conectan emocionalmente con el público objetivo.
+export function buildCreativesPrompt({ project, knowledge, branding }) {
+  const system = `Eres un experto en marketing digital y publicidad en Meta Ads (Facebook e Instagram).
+Tu especialidad es crear creativos publicitarios de alto impacto que generan conversiones reales.
 Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes ni después.`
 
   const brandingInfo = branding ? `
@@ -65,7 +65,8 @@ Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes 
     ? `\n**Base de conocimiento del producto:**\n${knowledge.contenido}`
     : ''
 
-  const prompt = `Genera exactamente 50 ángulos de venta únicos y poderosos para el siguiente producto/servicio.
+  const prompt = `Genera exactamente 50 creativos publicitarios para Meta Ads para el siguiente producto/servicio.
+Cada creativo debe tocar un ángulo de venta diferente y estar listo para usar en Facebook e Instagram.
 
 **INFORMACIÓN DEL PROYECTO:**
 - Nombre: ${project.nombre}
@@ -75,44 +76,57 @@ Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes 
 ${brandingInfo}
 ${knowledgeInfo}
 
-**TIPOS DE ÁNGULOS a usar (distribuye entre los 50):**
-- dolor: Conecta con el problema o frustración del cliente
-- curiosidad: Genera intriga, abre un bucle mental
-- objecion: Destruye la principal razón para no comprar
-- miedo: Usa el miedo a perder algo o quedarse igual
-- resultado: Muestra la transformación o beneficio concreto
-- comparacion: Posiciona vs alternativas o estado actual
-- urgencia: Crea escasez real o temporal
-- testimonio: Simula o sugiere prueba social
-- educativo: Enseña algo útil relacionado con el producto
-- provocacion: Desafía una creencia del público
-- identidad: Conecta con quién quiere SER el cliente
-- transformacion: Antes y después emocional o físico
-- garantia: Elimina el riesgo percibido
-- precio: Reencuadra el costo como inversión
-- exclusividad: Sensación de acceso especial
-- social_proof: Números, casos, comunidad
-- novedad: Algo nuevo que cambia las reglas
-- aspiracional: El sueño/estilo de vida deseado
-- humor: Tono divertido o irónico
-- autoridad: Credenciales, ciencia, expertos
+**DISTRIBUYE los 50 creativos entre estos ángulos de marketing:**
+dolor, curiosidad, objecion, miedo, resultado, comparacion, urgencia, testimonio,
+educativo, provocacion, identidad, transformacion, garantia, precio, exclusividad,
+social_proof, novedad, aspiracional, humor, autoridad
 
-**INSTRUCCIONES:**
-- El headline debe ser de IMPACTO, máximo 12 palabras, sin puntos finales
-- El copy debe ser de 2-3 oraciones persuasivas con el tono indicado
-- El visual_sugerido debe describir una imagen o video corto ideal para el anuncio (2-3 oraciones)
-- Usa el tono y estilo del branding kit cuando esté disponible
-- Adapta el lenguaje al público objetivo específico
+**INSTRUCCIONES POR CAMPO:**
+- tipo: uno de los ángulos listados arriba
+- titulo: El texto principal del anuncio. Debe ser de ALTO IMPACTO, máximo 12 palabras, sin punto final. Es el headline que verá el usuario en Meta Ads.
+- cta: Texto corto de llamado a la acción en MAYÚSCULAS. Máximo 4 palabras. Ejemplos: "AGENDA AHORA", "CUPOS LIMITADOS", "VER PRECIO HOY", "QUIERO ACCESO", "RESERVA TU LUGAR", "EMPIEZA HOY", "DESCÁRGALO GRATIS". Debe ser urgente y específico al ángulo.
+- imagen_concepto: Descripción visual detallada para generar la imagen de fondo del anuncio. Describe la escena, personas, ambiente, colores y composición. 2-3 oraciones. La zona inferior de la imagen debe ser oscura o con sombra para que el texto se lea bien encima.
 
 Responde SOLO con este JSON (sin texto adicional):
 {
-  "angulos": [
+  "creativos": [
     {
       "tipo": "dolor",
-      "headline": "...",
-      "copy": "...",
-      "visual_sugerido": "..."
+      "titulo": "...",
+      "cta": "AGENDA AHORA",
+      "imagen_concepto": "..."
     }
+  ]
+}`
+
+  return { system, prompt }
+}
+
+// Mantener buildAnglesPrompt por compatibilidad con página de Ángulos
+export function buildAnglesPrompt({ project, knowledge, branding }) {
+  const system = `Eres un experto en copywriting y publicidad digital para Meta Ads (Facebook e Instagram).
+Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes ni después.`
+
+  const brandingInfo = branding ? `
+**Tono:** ${branding.tono || 'No especificado'}
+**Estilo:** ${branding.estilo || 'No especificado'}
+**Público:** ${branding.publico_detallado || 'No especificado'}` : ''
+
+  const knowledgeInfo = knowledge?.contenido
+    ? `\n**Base de conocimiento:**\n${knowledge.contenido}` : ''
+
+  const prompt = `Genera exactamente 50 ángulos de venta para este producto/servicio.
+
+**PROYECTO:** ${project.nombre}
+- Producto: ${project.producto || 'No especificado'}
+- Público: ${project.publico || 'No especificado'}
+- Propuesta de valor: ${project.propuesta_valor || 'No especificada'}
+${brandingInfo}${knowledgeInfo}
+
+Responde SOLO con este JSON:
+{
+  "angulos": [
+    { "tipo": "dolor", "headline": "...", "copy": "...", "visual_sugerido": "..." }
   ]
 }`
 
