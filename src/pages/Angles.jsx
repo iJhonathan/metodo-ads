@@ -200,7 +200,7 @@ export default function Angles() {
 
     try {
       const { system, prompt } = buildAnglesPrompt({ project, knowledge, branding })
-      const rawText = await callClaude({ apiKey, system, prompt, maxTokens: 4096 })
+      const rawText = await callClaude({ apiKey, system, prompt, maxTokens: 16000 })
       const parsed = extractJSON(rawText)
       const angles = parsed.angulos || parsed
 
@@ -286,7 +286,7 @@ export default function Angles() {
             Ángulos de Venta
           </h1>
           <p className="text-text-secondary mt-2 text-sm">
-            Genera 20 ángulos publicitarios únicos para tu producto usando Claude AI.
+            Genera 50 ángulos publicitarios únicos para tu producto usando Claude AI.
           </p>
         </div>
         {savedAngles.length > 0 && (
@@ -310,7 +310,7 @@ export default function Angles() {
             className="btn-primary py-3 px-6 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-glow"
           >
             <Wand2 size={16} />
-            {generating ? 'Generando...' : 'Generar 20 Ángulos'}
+            {generating ? 'Generando...' : 'Generar 50 Ángulos'}
           </button>
         </div>
 
@@ -422,7 +422,7 @@ export default function Angles() {
                     Listo para generar
                   </h3>
                   <p className="text-text-secondary text-sm max-w-sm mx-auto mb-5">
-                    Haz clic en "Generar 20 Ángulos" para que Claude AI cree ángulos de venta únicos para tu proyecto.
+                    Haz clic en "Generar 50 Ángulos" para que Claude AI cree ángulos de venta únicos para tu proyecto.
                   </p>
                   <div className="flex items-center justify-center gap-2 text-text-muted text-xs">
                     <Info size={13} />

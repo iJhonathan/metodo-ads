@@ -177,50 +177,63 @@ export default function CreativeFactory() {
     const apiKey = profile?.api_key_google
     if (!apiKey) { setError('no_key'); return }
     if (selected.size === 0) { setError('no_selection'); return }
-    if (!canGenerate) { setShowUpgrade(true); return }
 
     setError('')
     setIsGenerating(true)
     abortRef.current = false
 
+    const VARIATIONS_PER_ANGLE = 2
     const anglesToGenerate = savedAngles.filter(a => selected.has(a.id))
-    setProgress({ current: 0, total: anglesToGenerate.length, label: '' })
+    const totalCreatives = anglesToGenerate.length * VARIATIONS_PER_ANGLE
+    setProgress({ current: 0, total: totalCreatives, label: '' })
 
-    // Initialize creative slots (all generating)
-    const initial = anglesToGenerate.map(a => ({
-      _key: `gen_${a.id}_${Date.now()}`,
-      angle: a,
-      imageUrl: null,
-      estado: 'pendiente',
-      generating: true,
-      error: null,
-    }))
+    // Initialize creative slots — 2 per angle
+    const initial = anglesToGenerate.flatMap(a =>
+      Array.from({ length: VARIATIONS_PER_ANGLE }, (_, vi) => ({
+        _key: `gen_${a.id}_v${vi}_${Date.now()}`,
+        angle: a,
+        variationIndex: vi,
+        imageUrl: null,
+        estado: 'pendiente',
+        generating: true,
+        error: null,
+      }))
+    )
     setCreatives(initial)
     setTab('factory')
 
+    let doneCount = 0
     for (let i = 0; i < anglesToGenerate.length; i++) {
       if (abortRef.current) break
       const angle = anglesToGenerate[i]
-      const key = initial[i]._key
 
-      setProgress({ current: i + 1, total: anglesToGenerate.length, label: `"${angle.headline}"` })
+      for (let vi = 0; vi < VARIATIONS_PER_ANGLE; vi++) {
+        if (abortRef.current) break
+        const key = initial[i * VARIATIONS_PER_ANGLE + vi]._key
+        doneCount++
 
-      try {
-        const imagePrompt = buildImagePrompt({ angle, project, branding })
-        const imageUrl = await generateImage({ apiKey, prompt: imagePrompt })
+        setProgress({
+          current: doneCount,
+          total: totalCreatives,
+          label: `"${angle.headline}" — variación ${vi + 1}`,
+        })
 
-        setCreatives(prev => prev.map(c =>
-          c._key === key ? { ...c, imageUrl, generating: false } : c
-        ))
-      } catch (err) {
-        setCreatives(prev => prev.map(c =>
-          c._key === key ? { ...c, generating: false, error: err.message } : c
-        ))
-      }
+        try {
+          const imagePrompt = buildImagePrompt({ angle, project, branding, variationIndex: vi })
+          const imageUrl = await generateImage({ apiKey, prompt: imagePrompt })
 
-      // Small delay between requests to avoid rate limiting
-      if (i < anglesToGenerate.length - 1) {
-        await new Promise(r => setTimeout(r, 800))
+          setCreatives(prev => prev.map(c =>
+            c._key === key ? { ...c, imageUrl, generating: false } : c
+          ))
+        } catch (err) {
+          setCreatives(prev => prev.map(c =>
+            c._key === key ? { ...c, generating: false, error: err.message } : c
+          ))
+        }
+
+        if (doneCount < totalCreatives) {
+          await new Promise(r => setTimeout(r, 800))
+        }
       }
     }
 
@@ -271,7 +284,7 @@ export default function CreativeFactory() {
     ))
 
     try {
-      const imagePrompt = buildImagePrompt({ angle: creative.angle, project, branding })
+      const imagePrompt = buildImagePrompt({ angle: creative.angle, project, branding, variationIndex: creative.variationIndex ?? 0 })
       const imageUrl = await generateImage({ apiKey, prompt: imagePrompt })
       setCreatives(prev => prev.map(c =>
         c._key === creative._key ? { ...c, imageUrl, generating: false } : c
@@ -322,22 +335,6 @@ export default function CreativeFactory() {
         )}
       </div>
 
-      {/* Usage limit banner */}
-      {!canGenerate && (
-        <div
-          onClick={() => setShowUpgrade(true)}
-          className="flex items-center gap-3 bg-status-error/10 border border-status-error/30 rounded-xl px-5 py-4 mb-6 cursor-pointer hover:bg-status-error/15 transition-colors"
-        >
-          <AlertTriangle size={20} className="text-status-error flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-status-error font-medium text-sm">Límite mensual alcanzado</p>
-            <p className="text-text-secondary text-xs mt-0.5">
-              Has usado {usage} de {limit} creativos este mes. Actualiza tu plan para seguir generando.
-            </p>
-          </div>
-          <span className="btn-primary text-xs py-2 px-3">Actualizar plan</span>
-        </div>
-      )}
 
       {/* Error banners */}
       {error === 'no_key' && (
@@ -420,12 +417,12 @@ export default function CreativeFactory() {
                       <Wand2 size={15} />
                       {isGenerating
                         ? 'Generando...'
-                        : `Generar ${selected.size > 0 ? selected.size : ''} Creativo${selected.size !== 1 ? 's' : ''}`
+                        : `Generar ${selected.size > 0 ? selected.size * 2 : ''} Creativos`
                       }
                     </button>
                     {selected.size > 0 && (
                       <p className="text-text-muted text-xs text-center mt-2">
-                        ~{selected.size * 10}-{selected.size * 20}s de generación
+                        {selected.size * 2} imágenes · ~{selected.size * 2 * 10}-{selected.size * 2 * 20}s
                       </p>
                     )}
                   </div>
@@ -606,13 +603,6 @@ export default function CreativeFactory() {
         </div>
       )}
 
-      <UpgradeModal
-        open={showUpgrade}
-        onClose={() => setShowUpgrade(false)}
-        currentPlan={profile?.plan || 'free'}
-        usage={usage}
-        limit={limit}
-      />
     </div>
   )
 }

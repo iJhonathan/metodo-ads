@@ -65,7 +65,7 @@ Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes 
     ? `\n**Base de conocimiento del producto:**\n${knowledge.contenido}`
     : ''
 
-  const prompt = `Genera exactamente 20 ángulos de venta únicos y poderosos para el siguiente producto/servicio.
+  const prompt = `Genera exactamente 50 ángulos de venta únicos y poderosos para el siguiente producto/servicio.
 
 **INFORMACIÓN DEL PROYECTO:**
 - Nombre: ${project.nombre}
@@ -75,7 +75,7 @@ Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes 
 ${brandingInfo}
 ${knowledgeInfo}
 
-**TIPOS DE ÁNGULOS a usar (distribuye entre los 20):**
+**TIPOS DE ÁNGULOS a usar (distribuye entre los 50):**
 - dolor: Conecta con el problema o frustración del cliente
 - curiosidad: Genera intriga, abre un bucle mental
 - objecion: Destruye la principal razón para no comprar

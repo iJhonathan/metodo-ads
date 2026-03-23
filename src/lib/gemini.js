@@ -39,7 +39,12 @@ export async function generateImage({ apiKey, prompt }) {
 /**
  * Construye el prompt de imagen para Meta Ads a partir del ángulo y el contexto del proyecto.
  */
-export function buildImagePrompt({ angle, project, branding }) {
+const VARIATION_HINTS = [
+  'Primary composition: direct product focus, clean background, strong hero shot.',
+  'Alternative composition: lifestyle context, environmental setting, emotional storytelling angle.',
+]
+
+export function buildImagePrompt({ angle, project, branding, variationIndex = 0 }) {
   const style = branding?.estilo || 'modern'
   const primaryColor = branding?.colores?.[0] || ''
   const audience = branding?.publico_detallado || project?.publico || ''
@@ -56,10 +61,12 @@ export function buildImagePrompt({ angle, project, branding }) {
   }
 
   const styleDesc = styleMap[style] || style
+  const variationHint = VARIATION_HINTS[variationIndex] || VARIATION_HINTS[0]
 
   return `Professional Meta Ads advertising image for Facebook and Instagram.
 
 Visual concept: ${angle.visual_sugerido}
+Composition direction: ${variationHint}
 
 Product: ${project?.producto || 'product'}
 Target audience: ${audience}

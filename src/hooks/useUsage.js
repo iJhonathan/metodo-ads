@@ -4,9 +4,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { isDemoMode, DEMO_USAGE } from '../lib/demo'
 
 export const PLAN_LIMITS = {
-  free:    0,
-  starter: 300,
-  pro:     1000,
+  free:    Infinity,
+  starter: Infinity,
+  pro:     Infinity,
   elite:   Infinity,
 }
 
