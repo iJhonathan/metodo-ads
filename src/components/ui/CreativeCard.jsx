@@ -65,8 +65,8 @@ export default function CreativeCard({
 }) {
   const tipoColor = TIPO_COLORS[creative.angle?.tipo] || '#7c3aed'
 
-  // Soporte para campo nuevo (titulo/cta) y campo legado (headline)
-  const titulo = creative.angle?.titulo || creative.angle?.headline || ''
+  const textoImagen = creative.angle?.texto_imagen || creative.angle?.headline || ''
+  const titulo = creative.angle?.titulo || ''
   const cta = creative.angle?.cta || ''
 
   const handleDownload = () => {
@@ -112,7 +112,10 @@ export default function CreativeCard({
               alt={titulo}
               className="w-full h-full object-cover"
             />
-            {/* Tipo badge — solo referencia visual */}
+            {/* Gradient overlay para legibilidad */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+            {/* Tipo badge */}
             <div className="absolute top-3 left-3">
               <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: tipoColor + 'dd' }}>
                 {TIPO_LABELS[creative.angle?.tipo] || creative.angle?.tipo}
@@ -127,6 +130,23 @@ export default function CreativeCard({
                 </span>
               </div>
             )}
+
+            {/* Texto visual sobre la imagen */}
+            {textoImagen && (
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <p className="text-white font-bold text-sm leading-snug drop-shadow-lg">
+                  {textoImagen}
+                </p>
+                {cta && (
+                  <span
+                    className="inline-block mt-2 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg"
+                    style={{ backgroundColor: tipoColor }}
+                  >
+                    {cta}
+                  </span>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -138,8 +158,8 @@ export default function CreativeCard({
       {/* Copyable fields */}
       {(titulo || cta) && (
         <div className="p-3 space-y-2 border-t border-border bg-surface">
-          {titulo && <CopyField label="Título" value={titulo} />}
-          {cta && <CopyField label="CTA" value={cta} accent />}
+          {titulo && <CopyField label="Titular (Meta Ads)" value={titulo} />}
+          {cta && <CopyField label="Botón CTA (Meta Ads)" value={cta} accent />}
         </div>
       )}
 

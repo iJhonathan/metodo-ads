@@ -83,15 +83,17 @@ social_proof, novedad, aspiracional, humor, autoridad
 
 **INSTRUCCIONES POR CAMPO:**
 - tipo: uno de los ángulos listados arriba
-- titulo: El texto principal del anuncio. Debe ser de ALTO IMPACTO, máximo 12 palabras, sin punto final. Es el headline que verá el usuario en Meta Ads.
-- cta: Texto corto de llamado a la acción en MAYÚSCULAS. Máximo 4 palabras. Ejemplos: "AGENDA AHORA", "CUPOS LIMITADOS", "VER PRECIO HOY", "QUIERO ACCESO", "RESERVA TU LUGAR", "EMPIEZA HOY", "DESCÁRGALO GRATIS". Debe ser urgente y específico al ángulo.
-- imagen_concepto: Descripción visual detallada para generar la imagen de fondo del anuncio. Describe la escena, personas, ambiente, colores y composición. 2-3 oraciones. La zona inferior de la imagen debe ser oscura o con sombra para que el texto se lea bien encima.
+- texto_imagen: El copy que aparece VISUALMENTE SOBRE LA IMAGEN del anuncio. Debe ser corto, impactante, tipo titular publicitario. Máximo 8 palabras. Diferente al titulo. Ejemplo: "¿Listo para cambiar tu vida?" o "Resultados reales en 30 días"
+- titulo: El texto que va en el campo "Titular" de Meta Ads. Diferente al texto_imagen, más descriptivo y persuasivo. Máximo 40 caracteres.
+- cta: Texto MUY CORTO para el botón de acción de Meta Ads. En MAYÚSCULAS, máximo 3 palabras. Ejemplos: "AGENDA AHORA", "VER PRECIO", "QUIERO ACCESO", "EMPIEZA HOY", "CUPOS LIMITADOS", "LO QUIERO".
+- imagen_concepto: Descripción visual detallada para generar la imagen de fondo. Describe escena, personas, ambiente, colores. 2-3 oraciones. La zona inferior debe ser oscura para que el texto se lea bien.
 
 Responde SOLO con este JSON (sin texto adicional):
 {
   "creativos": [
     {
       "tipo": "dolor",
+      "texto_imagen": "...",
       "titulo": "...",
       "cta": "AGENDA AHORA",
       "imagen_concepto": "..."

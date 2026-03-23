@@ -126,7 +126,7 @@ export async function compositeAd({ imageUrl, angle, branding }) {
     var copyBlockHeight = 0
   }
 
-  // 6. Headline (titulo nuevo o headline legado)
+  // 6. Texto visual de la imagen (texto_imagen, distinto al titulo de Meta Ads)
   ctx.font = 'bold 58px Arial, sans-serif'
   ctx.fillStyle = '#ffffff'
   ctx.textAlign = 'left'
@@ -136,7 +136,7 @@ export async function compositeAd({ imageUrl, angle, branding }) {
   ctx.shadowBlur = 10
   ctx.shadowOffsetY = 2
 
-  const headlineText = angle.titulo || angle.headline || ''
+  const headlineText = angle.texto_imagen || angle.headline || ''
   const headlineLines = wrapText(ctx, headlineText, SIZE - PAD * 2)
   const lineH = 70
   const headlineBlockH = headlineLines.length * lineH
