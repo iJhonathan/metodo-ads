@@ -3,23 +3,18 @@
  * Llamada directa desde el browser con la key del usuario.
  */
 
-const IMAGEN_API = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict'
+const GEMINI_IMAGE_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent'
 
 /**
  * Genera una imagen y la devuelve como data URL (base64).
  */
 export async function generateImage({ apiKey, prompt }) {
-  const res = await fetch(`${IMAGEN_API}?key=${apiKey}`, {
+  const res = await fetch(`${GEMINI_IMAGE_API}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: 1,
-        aspectRatio: '1:1',
-        safetyFilterLevel: 'block_few',
-        personGeneration: 'allow_adult',
-      },
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseModalities: ['IMAGE'] },
     }),
   })
 
@@ -30,10 +25,10 @@ export async function generateImage({ apiKey, prompt }) {
   }
 
   const data = await res.json()
-  const b64 = data.predictions?.[0]?.bytesBase64Encoded
+  const b64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data
   if (!b64) throw new Error('Imagen no generada. Verifica tu API Key de Google AI Studio.')
 
-  return `data:image/png;base64,${b64}`
+  return `data:image/jpeg;base64,${b64}`
 }
 
 /**
