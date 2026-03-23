@@ -14,7 +14,6 @@ import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import KnowledgeBase from './pages/KnowledgeBase'
 import BrandingKit from './pages/BrandingKit'
-import Angles from './pages/Angles'
 import CreativeFactory from './pages/CreativeFactory'
 import Analysis from './pages/Analysis'
 import Gallery from './pages/Gallery'
@@ -63,8 +62,7 @@ function AppRoutes() {
         <Route path="/projects/:id" element={<ProjectDetail />} />
         <Route path="/knowledge" element={<KnowledgeBase />} />
         <Route path="/branding" element={<BrandingKit />} />
-        <Route path="/angles" element={<Angles />} />
-        <Route path="/factory" element={<CreativeFactory />} />
+<Route path="/factory" element={<CreativeFactory />} />
         <Route path="/analysis" element={<Analysis />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/settings" element={<Settings />} />
