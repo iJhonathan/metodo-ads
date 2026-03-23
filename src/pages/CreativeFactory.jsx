@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Wand2, Sparkles, CheckCircle2, Download, Square,
-  AlertTriangle, Settings, Zap, RefreshCw, SlidersHorizontal
+  AlertTriangle, Settings, Zap, RefreshCw, SlidersHorizontal, ArrowRight
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { callClaude, extractJSON, buildCreativesPrompt, ANGLE_TYPES } from '../lib/claude'
@@ -173,6 +173,9 @@ export default function CreativeFactory() {
     if (!googleKey) { setError('no_google'); return }
     if (!project) return
     if (selectedAngles.size === 0) { setError('no_angles'); return }
+    if (!branding?.genero || !branding?.edad_desde || !branding?.edad_hasta || !branding?.mercado) {
+      setError('incomplete_branding'); return
+    }
 
     setError('')
     abortRef.current = false
@@ -419,13 +422,28 @@ export default function CreativeFactory() {
           <Settings size={16} className="text-status-warning" />
         </div>
       )}
+      {error === 'incomplete_branding' && (
+        <div
+          onClick={() => navigate(`/branding?project=${projectId}`)}
+          className="flex items-center gap-3 bg-status-warning/10 border border-status-warning/30 rounded-xl px-5 py-4 mb-6 cursor-pointer hover:bg-status-warning/15 transition-colors"
+        >
+          <AlertTriangle size={20} className="text-status-warning flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-status-warning font-medium text-sm">Tu Branding Kit está incompleto</p>
+            <p className="text-text-secondary text-xs mt-0.5">Completa el género, edad y mercado objetivo antes de generar creativos.</p>
+          </div>
+          <span className="text-status-warning text-xs font-medium flex items-center gap-1 flex-shrink-0">
+            Completar Branding Kit <ArrowRight size={14} />
+          </span>
+        </div>
+      )}
       {error === 'no_angles' && (
         <div className="flex items-center gap-3 bg-status-info/10 border border-status-info/30 rounded-xl px-5 py-4 mb-6">
           <AlertTriangle size={18} className="text-status-info flex-shrink-0" />
           <p className="text-status-info text-sm">Selecciona al menos un ángulo de venta.</p>
         </div>
       )}
-      {error && !['no_claude', 'no_google', 'no_angles'].includes(error) && (
+      {error && !['no_claude', 'no_google', 'no_angles', 'incomplete_branding'].includes(error) && (
         <div className="flex items-start gap-3 bg-status-error/10 border border-status-error/30 rounded-xl px-5 py-4 mb-6">
           <AlertTriangle size={18} className="text-status-error flex-shrink-0 mt-0.5" />
           <div className="flex-1">

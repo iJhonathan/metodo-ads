@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Palette, Save, CheckCircle2, Plus, X, Info,
-  MessageSquare, Sparkles, Users, Eye
+  MessageSquare, Sparkles, Users, Eye, MapPin, UserCheck
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import ProjectSelector from '../components/ui/ProjectSelector'
@@ -32,6 +32,21 @@ const ESTILOS = [
   { value: 'bold', label: 'Bold / Atrevido', emoji: '🔥' },
   { value: 'corporativo', label: 'Corporativo', emoji: '🏢' },
   { value: 'lifestyle', label: 'Lifestyle', emoji: '🌿' },
+]
+
+const GENEROS = [
+  { value: 'Mujeres', label: 'Mujeres', emoji: '♀' },
+  { value: 'Hombres', label: 'Hombres', emoji: '♂' },
+  { value: 'Todos (mixto)', label: 'Todos (mixto)', emoji: '⚥' },
+]
+
+const MERCADOS = [
+  'Latinoamérica (América Latina)',
+  'España',
+  'Estados Unidos (español)',
+  'Europa hispanohablante',
+  'Global hispanohablante',
+  'Otro (especificar)',
 ]
 
 const PRESET_COLORS = [
@@ -64,7 +79,6 @@ function ColorPicker({ colors, onChange }) {
 
   return (
     <div className="space-y-4">
-      {/* Selected colors */}
       {colors.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {colors.map(hex => (
@@ -85,7 +99,6 @@ function ColorPicker({ colors, onChange }) {
         </div>
       )}
 
-      {/* Presets */}
       <div>
         <p className="text-text-muted text-xs mb-2">Colores rápidos</p>
         <div className="flex flex-wrap gap-2">
@@ -106,7 +119,6 @@ function ColorPicker({ colors, onChange }) {
         </div>
       </div>
 
-      {/* Custom hex input */}
       <div className="flex gap-2 items-center">
         <div className="relative flex-1 max-w-xs">
           <input
@@ -172,6 +184,10 @@ function BrandingPreview({ form }) {
   const primaryColor = form.colores?.[0] || '#7c3aed'
   const secondaryColor = form.colores?.[1] || '#1a1a2e'
 
+  const edadLabel = form.edad_desde && form.edad_hasta
+    ? `${form.edad_desde}–${form.edad_hasta} años`
+    : null
+
   return (
     <div className="card border-accent/20">
       <div className="flex items-center gap-2 mb-4">
@@ -183,7 +199,6 @@ function BrandingPreview({ form }) {
         className="rounded-xl p-5 border border-white/10"
         style={{ background: `linear-gradient(135deg, ${secondaryColor}cc, ${primaryColor}22)` }}
       >
-        {/* Color strip */}
         {form.colores?.length > 0 && (
           <div className="flex gap-2 mb-4">
             {form.colores.map((c, i) => (
@@ -209,6 +224,27 @@ function BrandingPreview({ form }) {
           }
         </p>
 
+        {/* Audience tags */}
+        {(form.genero || edadLabel || form.mercado) && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {form.genero && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/15 text-white/80">
+                {form.genero}
+              </span>
+            )}
+            {edadLabel && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/15 text-white/80">
+                {edadLabel}
+              </span>
+            )}
+            {form.mercado && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/15 text-white/80">
+                {form.mercado === 'Otro (especificar)' ? form.mercado_personalizado || 'Otro' : form.mercado}
+              </span>
+            )}
+          </div>
+        )}
+
         <div
           className="mt-4 px-4 py-2 rounded-lg text-white text-sm font-medium text-center"
           style={{ backgroundColor: primaryColor }}
@@ -230,6 +266,11 @@ export default function BrandingKit() {
     colores: [],
     tono: null,
     estilo: null,
+    genero: null,
+    edad_desde: '',
+    edad_hasta: '',
+    mercado: null,
+    mercado_personalizado: '',
     publico_detallado: '',
   })
   const [savedForm, setSavedForm] = useState(null)
@@ -244,7 +285,17 @@ export default function BrandingKit() {
   }, [projectId])
 
   function resetForm() {
-    const empty = { colores: [], tono: null, estilo: null, publico_detallado: '' }
+    const empty = {
+      colores: [],
+      tono: null,
+      estilo: null,
+      genero: null,
+      edad_desde: '',
+      edad_hasta: '',
+      mercado: null,
+      mercado_personalizado: '',
+      publico_detallado: '',
+    }
     setForm(empty)
     setSavedForm(empty)
     setKitId(null)
@@ -263,6 +314,11 @@ export default function BrandingKit() {
         colores: Array.isArray(data.colores) ? data.colores : [],
         tono: data.tono || null,
         estilo: data.estilo || null,
+        genero: data.genero || null,
+        edad_desde: data.edad_desde ?? '',
+        edad_hasta: data.edad_hasta ?? '',
+        mercado: data.mercado || null,
+        mercado_personalizado: data.mercado_personalizado || '',
         publico_detallado: data.publico_detallado || '',
       }
       setForm(loaded)
@@ -288,6 +344,11 @@ export default function BrandingKit() {
       colores: form.colores,
       tono: form.tono,
       estilo: form.estilo,
+      genero: form.genero,
+      edad_desde: form.edad_desde !== '' ? Number(form.edad_desde) : null,
+      edad_hasta: form.edad_hasta !== '' ? Number(form.edad_hasta) : null,
+      mercado: form.mercado,
+      mercado_personalizado: form.mercado_personalizado || null,
       publico_detallado: form.publico_detallado,
       updated_at: new Date().toISOString(),
     }
@@ -306,6 +367,9 @@ export default function BrandingKit() {
   }
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(savedForm)
+
+  // Audience fields completeness
+  const audienceComplete = form.genero && form.edad_desde && form.edad_hasta && form.mercado
 
   return (
     <div className="animate-fade-in max-w-4xl">
@@ -382,24 +446,136 @@ export default function BrandingKit() {
               />
             </div>
 
-            {/* Público */}
+            {/* Público Objetivo — campos estructurados */}
             <div className="card">
-              <h2 className="text-text-primary font-semibold mb-4 flex items-center gap-2">
+              <h2 className="text-text-primary font-semibold mb-1 flex items-center gap-2">
                 <Users size={17} className="text-status-success" />
                 Público Objetivo Detallado
+                {audienceComplete && (
+                  <span className="ml-auto text-xs text-status-success flex items-center gap-1">
+                    <CheckCircle2 size={12} /> Completo
+                  </span>
+                )}
               </h2>
-              <label className="label">Describe a tu cliente ideal</label>
-              <textarea
-                value={form.publico_detallado}
-                onChange={e => set('publico_detallado', e.target.value)}
-                placeholder="Ej: Mujeres de 28-45 años, interesadas en salud y bienestar, con poder adquisitivo medio-alto, frustradas con dietas que no funcionan, activas en redes sociales, seguidoras de influencers de fitness..."
-                className="input-field resize-none"
-                rows={4}
-              />
-              <p className="text-text-muted text-xs mt-2 flex items-start gap-1.5">
-                <Info size={12} className="mt-0.5 flex-shrink-0" />
-                Mientras más detallado, más personalizados serán los ángulos generados. Incluye edad, intereses, dolores y comportamiento.
+              <p className="text-text-muted text-xs mb-5">
+                Esta información define quién verá tus anuncios y personaliza los creativos generados.
               </p>
+
+              {/* Género */}
+              <div className="mb-5">
+                <label className="label flex items-center gap-1.5">
+                  <UserCheck size={13} className="text-text-muted" />
+                  Género
+                  <span className="text-status-error text-xs">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {GENEROS.map(g => (
+                    <button
+                      key={g.value}
+                      onClick={() => set('genero', g.value === form.genero ? null : g.value)}
+                      className={`p-3 rounded-xl border text-center transition-all duration-200
+                        ${form.genero === g.value
+                          ? 'bg-accent/20 border-accent/50 text-accent-light shadow-glow-sm'
+                          : 'bg-background border-border hover:border-border-hover text-text-secondary hover:text-text-primary'
+                        }`}
+                    >
+                      <div className="text-lg mb-0.5">{g.emoji}</div>
+                      <div className="font-medium text-sm">{g.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rango de edad */}
+              <div className="mb-5">
+                <label className="label flex items-center gap-1.5">
+                  Rango de Edad
+                  <span className="text-status-error text-xs">*</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="text-text-muted text-xs mb-1 block">Desde</label>
+                    <input
+                      type="number"
+                      value={form.edad_desde}
+                      onChange={e => set('edad_desde', e.target.value)}
+                      placeholder="18"
+                      min={13}
+                      max={99}
+                      className="input-field text-center"
+                    />
+                  </div>
+                  <span className="text-text-muted text-sm mt-5">—</span>
+                  <div className="flex-1">
+                    <label className="text-text-muted text-xs mb-1 block">Hasta</label>
+                    <input
+                      type="number"
+                      value={form.edad_hasta}
+                      onChange={e => set('edad_hasta', e.target.value)}
+                      placeholder="65"
+                      min={13}
+                      max={99}
+                      className="input-field text-center"
+                    />
+                  </div>
+                  <div className="flex-1 mt-5">
+                    {form.edad_desde && form.edad_hasta && (
+                      <div className="text-text-secondary text-sm text-center bg-surface-3 border border-border rounded-xl py-2.5 px-3">
+                        {form.edad_desde}–{form.edad_hasta} años
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mercado */}
+              <div className="mb-5">
+                <label className="label flex items-center gap-1.5">
+                  <MapPin size={13} className="text-text-muted" />
+                  Ubicación / Mercado
+                  <span className="text-status-error text-xs">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {MERCADOS.map(m => (
+                    <button
+                      key={m}
+                      onClick={() => set('mercado', m === form.mercado ? null : m)}
+                      className={`px-3 py-2.5 rounded-xl border text-left text-sm transition-all duration-200
+                        ${form.mercado === m
+                          ? 'bg-accent/20 border-accent/50 text-accent-light shadow-glow-sm'
+                          : 'bg-background border-border hover:border-border-hover text-text-secondary hover:text-text-primary'
+                        }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                {form.mercado === 'Otro (especificar)' && (
+                  <input
+                    type="text"
+                    value={form.mercado_personalizado}
+                    onChange={e => set('mercado_personalizado', e.target.value)}
+                    placeholder="Ej: México, Colombia, Argentina..."
+                    className="input-field mt-3"
+                  />
+                )}
+              </div>
+
+              {/* Descripción libre */}
+              <div>
+                <label className="label">Descripción adicional del cliente ideal <span className="text-text-muted font-normal">(opcional)</span></label>
+                <textarea
+                  value={form.publico_detallado}
+                  onChange={e => set('publico_detallado', e.target.value)}
+                  placeholder="Ej: Interesadas en salud y bienestar, con poder adquisitivo medio-alto, frustradas con dietas que no funcionan, activas en redes sociales..."
+                  className="input-field resize-none"
+                  rows={3}
+                />
+                <p className="text-text-muted text-xs mt-2 flex items-start gap-1.5">
+                  <Info size={12} className="mt-0.5 flex-shrink-0" />
+                  Incluye intereses, dolores, comportamiento y cualquier detalle adicional que enriquezca los creativos.
+                </p>
+              </div>
             </div>
 
             {/* Save button */}
@@ -425,7 +601,7 @@ export default function BrandingKit() {
             </div>
           </div>
 
-          {/* Right col: preview */}
+          {/* Right col: preview + summary */}
           <div className="space-y-4">
             <BrandingPreview form={form} />
 
@@ -456,13 +632,50 @@ export default function BrandingKit() {
                     {form.estilo ? ESTILOS.find(s => s.value === form.estilo)?.label : 'Sin definir'}
                   </span>
                 </div>
+
+                {/* New audience fields */}
+                <div className="border-t border-border pt-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted">Género</span>
+                    <span className={form.genero ? 'text-text-primary' : 'text-status-warning text-xs'}>
+                      {form.genero || 'Sin definir ⚠'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted">Edad</span>
+                    <span className={form.edad_desde && form.edad_hasta ? 'text-text-primary' : 'text-status-warning text-xs'}>
+                      {form.edad_desde && form.edad_hasta
+                        ? `${form.edad_desde}–${form.edad_hasta} años`
+                        : 'Sin definir ⚠'
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-text-muted flex-shrink-0">Mercado</span>
+                    <span className={`text-right text-xs ${form.mercado ? 'text-text-primary' : 'text-status-warning'}`}>
+                      {form.mercado
+                        ? (form.mercado === 'Otro (especificar)' ? form.mercado_personalizado || 'Otro' : form.mercado)
+                        : 'Sin definir ⚠'
+                      }
+                    </span>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
-                  <span className="text-text-muted">Público</span>
+                  <span className="text-text-muted">Descripción</span>
                   <span className={form.publico_detallado ? 'text-status-success text-xs' : 'text-text-muted text-xs'}>
-                    {form.publico_detallado ? '✓ Definido' : 'Sin definir'}
+                    {form.publico_detallado ? '✓ Definida' : 'Opcional'}
                   </span>
                 </div>
               </div>
+
+              {!audienceComplete && (
+                <div className="mt-2 p-2.5 bg-status-warning/10 border border-status-warning/30 rounded-lg">
+                  <p className="text-status-warning text-xs leading-relaxed">
+                    Completa género, edad y mercado para desbloquear la Fábrica Creativa.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
