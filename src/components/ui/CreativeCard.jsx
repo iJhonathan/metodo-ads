@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import {
   CheckCircle2, XCircle, Download, Loader2,
-  AlertCircle, RefreshCw, Eye, EyeOff
+  AlertCircle, RefreshCw
 } from 'lucide-react'
+import { compositeAd } from '../../lib/composite'
 
 const TIPO_COLORS = {
   dolor: '#ef4444', curiosidad: '#eab308', objecion: '#f97316',
@@ -24,6 +25,19 @@ const TIPO_LABELS = {
   humor: 'Humor', autoridad: 'Autoridad',
 }
 
+const CTA_BY_TYPE = {
+  dolor: 'Quiero solucionarlo →', resultado: 'Ver los resultados →',
+  urgencia: 'Aprovechar ahora →', precio: 'Ver precio especial →',
+  garantia: 'Empezar sin riesgo →', transformacion: 'Quiero transformarme →',
+  curiosidad: 'Descubrir el secreto →', objecion: 'Ver cómo funciona →',
+  miedo: 'Protegerme ahora →', comparacion: 'Comparar opciones →',
+  testimonio: 'Ver más historias →', educativo: 'Aprender más →',
+  provocacion: 'Demostrar que sí →', identidad: 'Ser parte ahora →',
+  exclusividad: 'Acceder ahora →', social_proof: 'Unirme a ellos →',
+  novedad: 'Ser el primero →', aspiracional: 'Empezar hoy →',
+  humor: 'Ver más →', autoridad: 'Conocer más →',
+}
+
 const ESTADO_CONFIG = {
   aprobado:   { label: 'Aprobado',   color: 'bg-status-success/20 border-status-success/40 text-status-success' },
   descartado: { label: 'Descartado', color: 'bg-status-error/20 border-status-error/40 text-status-error' },
@@ -31,23 +45,36 @@ const ESTADO_CONFIG = {
 }
 
 export default function CreativeCard({
-  creative,           // { id?, angle, imageUrl, estado, generating, error }
+  creative,
   onApprove,
   onDiscard,
   onRetry,
-  onDownload,
   compact = false,
 }) {
-  const [showCopy, setShowCopy] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const tipoColor = TIPO_COLORS[creative.angle?.tipo] || '#7c3aed'
   const estadoConf = ESTADO_CONFIG[creative.estado] || ESTADO_CONFIG.pendiente
+  const ctaText = CTA_BY_TYPE[creative.angle?.tipo] || 'Descubrir más →'
+  const copySnippet = creative.angle?.copy?.split('.')[0] || ''
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!creative.imageUrl) return
-    const a = document.createElement('a')
-    a.href = creative.imageUrl
-    a.download = `creativo-${creative.angle?.tipo || 'ads'}-${Date.now()}.png`
-    a.click()
+    setDownloading(true)
+    try {
+      const composited = await compositeAd({
+        imageUrl: creative.imageUrl,
+        angle: creative.angle,
+        branding: creative.branding,
+      })
+      const a = document.createElement('a')
+      a.href = composited
+      a.download = `metodo-ads-${creative.angle?.tipo || 'creativo'}-${Date.now()}.jpg`
+      a.click()
+    } catch (e) {
+      console.error('Error al componer imagen:', e)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
@@ -61,10 +88,8 @@ export default function CreativeCard({
       <div className="relative aspect-square bg-surface-3 overflow-hidden">
         {creative.generating ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface-3">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center animate-pulse-slow">
-                <Loader2 size={22} className="text-white animate-spin" />
-              </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center animate-pulse-slow">
+              <Loader2 size={22} className="text-white animate-spin" />
             </div>
             <p className="text-text-secondary text-xs text-center px-4">
               Generando imagen con Gemini...
@@ -85,47 +110,55 @@ export default function CreativeCard({
           </div>
         ) : creative.imageUrl ? (
           <>
+            {/* Background image */}
             <img
               src={creative.imageUrl}
               alt={creative.angle?.headline || 'Creativo'}
               className="w-full h-full object-cover"
             />
-            {/* Status badge overlay */}
+
+            {/* Gradient overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+            {/* Tipo badge — top left */}
+            <div className="absolute top-3 left-3">
+              <span
+                className="text-white text-xs font-bold px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: tipoColor + 'dd' }}
+              >
+                {TIPO_LABELS[creative.angle?.tipo] || creative.angle?.tipo}
+              </span>
+            </div>
+
+            {/* Status badge — top right */}
             {creative.estado !== 'pendiente' && (
-              <div className="absolute top-2 right-2">
+              <div className="absolute top-3 right-3">
                 <span className={`badge border text-xs font-semibold ${estadoConf.color}`}>
                   {estadoConf.label}
                 </span>
               </div>
             )}
-            {/* Tipo badge */}
-            <div className="absolute top-2 left-2">
-              <span
-                className="badge text-xs font-semibold text-white"
-                style={{ backgroundColor: tipoColor + 'cc' }}
+
+            {/* Text overlay — bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              {/* Headline */}
+              <p className="text-white font-bold text-sm leading-snug drop-shadow-lg mb-1 line-clamp-3">
+                {creative.angle?.headline}
+              </p>
+              {/* Copy snippet */}
+              {copySnippet && (
+                <p className="text-white/75 text-xs leading-snug mb-3 line-clamp-2">
+                  {copySnippet}.
+                </p>
+              )}
+              {/* CTA pill */}
+              <div
+                className="inline-block px-3 py-1.5 rounded-full text-white text-xs font-semibold shadow-lg"
+                style={{ backgroundColor: tipoColor }}
               >
-                {TIPO_LABELS[creative.angle?.tipo] || creative.angle?.tipo}
-              </span>
-            </div>
-            {/* Copy toggle */}
-            <button
-              onClick={() => setShowCopy(!showCopy)}
-              className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors"
-              title={showCopy ? 'Ocultar copy' : 'Ver copy'}
-            >
-              {showCopy ? <EyeOff size={13} /> : <Eye size={13} />}
-            </button>
-            {/* Copy overlay */}
-            {showCopy && (
-              <div className="absolute inset-0 bg-black/80 flex flex-col justify-end p-3">
-                <p className="text-white font-bold text-sm leading-tight mb-1">
-                  {creative.angle?.headline}
-                </p>
-                <p className="text-white/80 text-xs leading-relaxed">
-                  {creative.angle?.copy}
-                </p>
+                {ctaText}
               </div>
-            )}
+            </div>
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -134,17 +167,8 @@ export default function CreativeCard({
         )}
       </div>
 
-      {/* Headline */}
-      {!compact && (
-        <div className="px-3 pt-3 pb-1">
-          <p className="text-text-primary font-semibold text-sm leading-snug line-clamp-2">
-            {creative.angle?.headline}
-          </p>
-        </div>
-      )}
-
       {/* Actions */}
-      {creative.estado === 'pendiente' && !creative.generating && !creative.error && (
+      {creative.estado === 'pendiente' && !creative.generating && !creative.error && creative.imageUrl && (
         <div className="flex items-center gap-2 px-3 pb-3 pt-2 mt-auto">
           <button
             onClick={() => onDiscard?.(creative)}
@@ -154,11 +178,12 @@ export default function CreativeCard({
             Descartar
           </button>
           <button
-            onClick={() => onDownload ? onDownload(creative) : handleDownload()}
-            className="p-2 rounded-xl text-text-muted border border-border hover:border-border-hover hover:text-text-primary transition-all"
-            title="Descargar"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="p-2 rounded-xl text-text-muted border border-border hover:border-border-hover hover:text-text-primary transition-all disabled:opacity-50"
+            title="Descargar con texto"
           >
-            <Download size={14} />
+            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           </button>
           <button
             onClick={() => onApprove?.(creative)}
@@ -175,10 +200,11 @@ export default function CreativeCard({
         <div className="px-3 pb-3 pt-2 mt-auto">
           <button
             onClick={handleDownload}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-text-secondary border border-border hover:border-border-hover hover:text-text-primary transition-all"
+            disabled={downloading}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-text-secondary border border-border hover:border-border-hover hover:text-text-primary transition-all disabled:opacity-50"
           >
-            <Download size={13} />
-            Descargar
+            {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            {downloading ? 'Componiendo...' : 'Descargar con texto'}
           </button>
         </div>
       )}

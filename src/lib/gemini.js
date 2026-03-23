@@ -63,7 +63,7 @@ export function buildImagePrompt({ angle, project, branding, variationIndex = 0 
   const styleDesc = styleMap[style] || style
   const variationHint = VARIATION_HINTS[variationIndex] || VARIATION_HINTS[0]
 
-  return `Professional Meta Ads advertising image for Facebook and Instagram.
+  return `Professional background image for a Meta Ads creative (Facebook/Instagram ad).
 
 Visual concept: ${angle.visual_sugerido}
 Composition direction: ${variationHint}
@@ -73,13 +73,13 @@ Target audience: ${audience}
 Visual style: ${styleDesc} aesthetic
 ${primaryColor ? `Brand accent color: ${primaryColor}` : ''}
 
-Requirements:
-- High-quality professional advertising photography or digital art
-- Clean composition optimized for social media feed (square 1:1 format)
-- Photorealistic and visually stunning
-- NO text, NO words, NO letters, NO watermarks
-- Suitable for Facebook and Instagram advertising
-- ${styleDesc} visual design
-- Emotionally engaging, stops the scroll
-- Bright, well-lit, professional quality`
+IMPORTANT COMPOSITION RULES (text will be overlaid on this image):
+- The bottom 40% of the image must be darker, blurred or with a natural shadow area — this is where the ad headline and CTA will appear
+- Leave clean visual space at the bottom for text overlay
+- The main subject (person, product, scene) should be in the upper 60% of the frame
+- High contrast, vivid colors in the upper portion to stop the scroll
+- NO text, NO words, NO letters, NO watermarks, NO logos in the image itself
+- Photorealistic, professional advertising photography quality
+- Square format (1:1), optimized for social media feed
+- Emotionally engaging, ${styleDesc} aesthetic`
 }
