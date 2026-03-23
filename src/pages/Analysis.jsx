@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { downloadCreativesAsZip, downloadSingle } from '../lib/download'
 import ProjectSelector from '../components/ui/ProjectSelector'
 import GalleryCard from '../components/ui/GalleryCard'
-import { DEMO_MODE, DEMO_CREATIVES } from '../lib/demo'
+import { isDemoMode, DEMO_CREATIVES } from '../lib/demo'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
 
@@ -90,7 +90,7 @@ export default function Analysis() {
 
   async function fetchCreatives(pid) {
     setLoading(true)
-    if (DEMO_MODE) {
+    if (isDemoMode()) {
       setCreatives(DEMO_CREATIVES.filter(c => c.project_id === pid))
       setLoading(false)
       return

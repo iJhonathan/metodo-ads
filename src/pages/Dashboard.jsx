@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase'
 import StatCard from '../components/ui/StatCard'
 import ProjectCard from '../components/ui/ProjectCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
-import { DEMO_MODE, DEMO_PROJECTS, DEMO_CREATIVES } from '../lib/demo'
+import { isDemoMode, DEMO_PROJECTS, DEMO_CREATIVES } from '../lib/demo'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
@@ -26,7 +26,7 @@ export default function Dashboard() {
   async function fetchData() {
     setLoading(true)
     try {
-      if (DEMO_MODE) {
+      if (isDemoMode()) {
         setProjects(DEMO_PROJECTS.slice(0, 6))
         setStats({
           projects: DEMO_PROJECTS.length,

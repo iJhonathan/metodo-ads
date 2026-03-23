@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
 import { downloadCreativesAsZip } from '../lib/download'
 import { useAuth } from '../contexts/AuthContext'
 import GalleryCard from '../components/ui/GalleryCard'
-import { DEMO_MODE, DEMO_CREATIVES, DEMO_PROJECTS } from '../lib/demo'
+import { isDemoMode, DEMO_CREATIVES, DEMO_PROJECTS } from '../lib/demo'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -62,7 +62,7 @@ export default function Gallery() {
 
   async function fetchAll() {
     setLoading(true)
-    if (DEMO_MODE) {
+    if (isDemoMode()) {
       const enriched = DEMO_CREATIVES.map(c => ({ ...c, project_name: c.projects?.nombre }))
       setCreatives(enriched)
       setProjects(DEMO_PROJECTS)

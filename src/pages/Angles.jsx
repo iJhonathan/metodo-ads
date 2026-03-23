@@ -12,7 +12,7 @@ import ProjectSelector from '../components/ui/ProjectSelector'
 import AngleCard from '../components/ui/AngleCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
-import { DEMO_MODE, DEMO_PROJECTS, DEMO_ANGLES, DEMO_BRANDING, DEMO_KNOWLEDGE } from '../lib/demo'
+import { isDemoMode, DEMO_PROJECTS, DEMO_ANGLES, DEMO_BRANDING, DEMO_KNOWLEDGE } from '../lib/demo'
 
 // ──────────────────────────────────────────
 // Generating animation
@@ -150,7 +150,7 @@ export default function Angles() {
   }, [projectId])
 
   async function loadContext(pid) {
-    if (DEMO_MODE) {
+    if (isDemoMode()) {
       const proj = DEMO_PROJECTS.find(p => p.id === pid) || DEMO_PROJECTS[0]
       setProject(proj)
       setKnowledge(DEMO_KNOWLEDGE)
@@ -169,7 +169,7 @@ export default function Angles() {
 
   async function loadSaved(pid) {
     setLoadingSaved(true)
-    if (DEMO_MODE) {
+    if (isDemoMode()) {
       setSavedAngles(DEMO_ANGLES.filter(a => a.project_id === pid))
       setLoadingSaved(false)
       return

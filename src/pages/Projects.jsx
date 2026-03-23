@@ -7,7 +7,7 @@ import ProjectCard from '../components/ui/ProjectCard'
 import EmptyState from '../components/ui/EmptyState'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Modal from '../components/ui/Modal'
-import { DEMO_MODE, DEMO_PROJECTS } from '../lib/demo'
+import { isDemoMode, DEMO_PROJECTS } from '../lib/demo'
 
 function NewProjectModal({ open, onClose, onCreated }) {
   const { user } = useAuth()
@@ -85,7 +85,7 @@ export default function Projects() {
 
   async function fetchProjects() {
     setLoading(true)
-    if (DEMO_MODE) { setProjects(DEMO_PROJECTS); setLoading(false); return }
+    if (isDemoMode()) { setProjects(DEMO_PROJECTS); setLoading(false); return }
     const { data } = await supabase
       .from('projects')
       .select('*')

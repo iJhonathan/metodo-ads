@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { DEMO_MODE, DEMO_USAGE } from '../lib/demo'
+import { isDemoMode, DEMO_USAGE } from '../lib/demo'
 
 export const PLAN_LIMITS = {
   free:    0,
@@ -34,7 +34,7 @@ export function useUsage() {
 
   const fetchUsage = useCallback(async () => {
     if (!user) return
-    if (DEMO_MODE) {
+    if (isDemoMode()) {
       setUsage(DEMO_USAGE.creativos_generados)
       setLoading(false)
       return
