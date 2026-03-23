@@ -1,26 +1,60 @@
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  Wand2, Sparkles, CheckCircle2, Download,
-  AlertTriangle, Settings, Info, Zap, RefreshCw
+  Wand2, Sparkles, CheckCircle2, Download, Square,
+  AlertTriangle, Settings, Zap, RefreshCw, SlidersHorizontal
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { callClaude, extractJSON, buildCreativesPrompt } from '../lib/claude'
+import { callClaude, extractJSON, buildCreativesPrompt, ANGLE_TYPES } from '../lib/claude'
 import { generateImage, buildImagePrompt } from '../lib/gemini'
+import { compositeAd } from '../lib/composite'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectSelector from '../components/ui/ProjectSelector'
 import CreativeCard from '../components/ui/CreativeCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
 
-const VARIATIONS_PER_ANGLE = 2
+const QUANTITY_OPTIONS = [10, 20, 50, 100]
 
 // ─────────────────────────────────────────
-// Progress overlay
+// Angle chip selector
+// ─────────────────────────────────────────
+function AngleChips({ selected, onToggle, onSelectAll, onClearAll }) {
+  const allSelected = selected.size === ANGLE_TYPES.length
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <SlidersHorizontal size={13} className="text-text-muted" />
+        <span className="text-text-secondary text-xs font-medium">Ángulos de venta:</span>
+        <button onClick={allSelected ? onClearAll : onSelectAll} className="text-accent-light text-xs font-medium hover:underline">
+          {allSelected ? 'Ninguno' : 'Todos'}
+        </button>
+        <span className="text-text-muted text-xs">({selected.size}/{ANGLE_TYPES.length})</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {ANGLE_TYPES.map(a => (
+          <button
+            key={a.key}
+            onClick={() => onToggle(a.key)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150
+              ${selected.has(a.key)
+                ? 'bg-accent text-white shadow-glow-sm'
+                : 'bg-surface-3 text-text-muted border border-border hover:border-border-hover hover:text-text-secondary'
+              }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────
+// Progress bar
 // ─────────────────────────────────────────
 function GenerationProgress({ phase, current, total, label }) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
-
   return (
     <div className="card mb-6">
       <div className="flex items-center justify-between mb-3">
@@ -33,27 +67,20 @@ function GenerationProgress({ phase, current, total, label }) {
           </div>
           <div>
             <p className="text-text-primary text-sm font-semibold leading-none">
-              {phase === 1 ? 'Fase 1 — Generando ángulos y textos con Claude AI' : 'Fase 2 — Generando imágenes con Gemini'}
+              {phase === 1 ? 'Fase 1 — Generando textos y ángulos con Claude AI...' : `Fase 2 — Generando imágenes (${current}/${total})`}
             </p>
-            {label && <p className="text-text-muted text-xs mt-0.5 truncate max-w-xs">{label}</p>}
+            {label && <p className="text-text-muted text-xs mt-0.5 truncate max-w-md">{label}</p>}
           </div>
         </div>
-        {phase === 2 && (
-          <span className="text-accent-light font-bold text-sm">{current}/{total}</span>
-        )}
+        {phase === 2 && <span className="text-accent-light font-bold text-sm">{pct}%</span>}
       </div>
-
       {phase === 2 && (
-        <div className="h-2 bg-surface-3 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-accent rounded-full transition-all duration-500 shadow-glow-sm"
-            style={{ width: `${pct}%` }}
-          />
+        <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-accent rounded-full transition-all duration-500 shadow-glow-sm" style={{ width: `${pct}%` }} />
         </div>
       )}
-
       {phase === 1 && (
-        <div className="flex gap-1 mt-2">
+        <div className="flex gap-1 mt-1">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full bg-accent/20 overflow-hidden">
               <div className="h-full bg-accent rounded-full animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
@@ -78,15 +105,21 @@ export default function CreativeFactory() {
   const [branding, setBranding] = useState(null)
   const [knowledge, setKnowledge] = useState(null)
 
-  const [creatives, setCreatives] = useState([])
-  const [savedCreatives, setSavedCreatives] = useState([])
-  const [loadingSaved, setLoadingSaved] = useState(false)
-  const [tab, setTab] = useState('factory')
+  // Controls
+  const [quantity, setQuantity] = useState(100)
+  const [selectedAngles, setSelectedAngles] = useState(() => new Set(ANGLE_TYPES.map(a => a.key)))
 
-  const [phase, setPhase] = useState(0)   // 0=idle 1=claude 2=images
+  // Generation state
+  const [creatives, setCreatives] = useState([])
+  const [phase, setPhase] = useState(0)
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' })
   const [error, setError] = useState('')
   const abortRef = useRef(false)
+
+  // Saved
+  const [savedCreatives, setSavedCreatives] = useState([])
+  const [loadingSaved, setLoadingSaved] = useState(false)
+  const [tab, setTab] = useState('factory')
 
   const isGenerating = phase > 0
 
@@ -115,12 +148,21 @@ export default function CreativeFactory() {
     setLoadingSaved(true)
     const { data } = await supabase
       .from('creatives')
-      .select('*, angles(tipo, titulo, cta, imagen_concepto)')
+      .select('*')
       .eq('project_id', pid)
       .eq('estado', 'aprobado')
       .order('created_at', { ascending: false })
     setSavedCreatives(data || [])
     setLoadingSaved(false)
+  }
+
+  // Angle chip handlers
+  const toggleAngle = (key) => {
+    setSelectedAngles(prev => {
+      const s = new Set(prev)
+      s.has(key) ? s.delete(key) : s.add(key)
+      return s
+    })
   }
 
   const handleGenerate = async () => {
@@ -129,73 +171,78 @@ export default function CreativeFactory() {
     if (!claudeKey) { setError('no_claude'); return }
     if (!googleKey) { setError('no_google'); return }
     if (!project) return
+    if (selectedAngles.size === 0) { setError('no_angles'); return }
 
     setError('')
     abortRef.current = false
     setCreatives([])
     setTab('factory')
 
-    // ── FASE 1: Claude genera los 50 ángulos con titulo + cta + imagen_concepto ──
+    // ── FASE 1: Claude genera los ángulos + textos ──
     setPhase(1)
     let angles = []
     try {
-      const { system, prompt } = buildCreativesPrompt({ project, knowledge, branding })
+      const { system, prompt } = buildCreativesPrompt({
+        project, knowledge, branding,
+        quantity,
+        angleTypes: [...selectedAngles],
+      })
       const rawText = await callClaude({ apiKey: claudeKey, system, prompt, maxTokens: 16000 })
       const parsed = extractJSON(rawText)
       angles = parsed.creativos || parsed.angulos || parsed
       if (!Array.isArray(angles) || angles.length === 0) throw new Error('Claude no devolvió creativos válidos.')
     } catch (err) {
-      setError(err.message || 'Error generando ángulos con Claude.')
+      if (!abortRef.current) setError(err.message || 'Error generando textos con Claude.')
       setPhase(0)
       return
     }
 
-    // ── FASE 2: Imagen 4 genera 2 imágenes por ángulo ──
-    setPhase(2)
-    const totalImages = angles.length * VARIATIONS_PER_ANGLE
+    if (abortRef.current) { setPhase(0); return }
 
-    // Inicializar todas las tarjetas en estado "generating"
-    const initial = angles.flatMap((angle, ai) =>
-      Array.from({ length: VARIATIONS_PER_ANGLE }, (_, vi) => ({
-        _key: `c_${ai}_v${vi}`,
-        angle,
-        variationIndex: vi,
-        imageUrl: null,
-        estado: 'pendiente',
-        generating: true,
-        error: null,
-      }))
-    )
+    // ── FASE 2: Imagen 4 genera + composita cada creativo ──
+    setPhase(2)
+    const total = angles.length
+
+    const initial = angles.map((angle, i) => ({
+      _key: `c_${i}`,
+      angle,
+      imageUrl: null,
+      estado: 'pendiente',
+      generating: true,
+      error: null,
+    }))
     setCreatives(initial)
 
-    let done = 0
-    for (let ai = 0; ai < angles.length; ai++) {
+    for (let i = 0; i < angles.length; i++) {
       if (abortRef.current) break
-      const angle = angles[ai]
+      const angle = angles[i]
+      const key = `c_${i}`
 
-      for (let vi = 0; vi < VARIATIONS_PER_ANGLE; vi++) {
-        if (abortRef.current) break
-        const key = `c_${ai}_v${vi}`
-        done++
-        setProgress({
-          current: done,
-          total: totalImages,
-          label: `"${angle.titulo}" — variación ${vi + 1}`,
-        })
+      setProgress({
+        current: i + 1,
+        total,
+        label: `"${angle.texto_imagen || ''}" — ${angle.tipo}`,
+      })
 
-        try {
-          const imgPrompt = buildImagePrompt({ angle, project, branding, variationIndex: vi })
-          const imageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
-          setCreatives(prev => prev.map(c =>
-            c._key === key ? { ...c, imageUrl, generating: false } : c
-          ))
-        } catch (err) {
-          setCreatives(prev => prev.map(c =>
-            c._key === key ? { ...c, generating: false, error: err.message } : c
-          ))
-        }
+      try {
+        // 1. Generar imagen de fondo
+        const imgPrompt = buildImagePrompt({ angle, project, branding })
+        const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
 
-        if (done < totalImages) await new Promise(r => setTimeout(r, 600))
+        // 2. Compositar texto sobre la imagen
+        const compositeUrl = await compositeAd({ imageUrl: rawImageUrl, angle, branding })
+
+        setCreatives(prev => prev.map(c =>
+          c._key === key ? { ...c, imageUrl: compositeUrl, generating: false } : c
+        ))
+      } catch (err) {
+        setCreatives(prev => prev.map(c =>
+          c._key === key ? { ...c, generating: false, error: err.message } : c
+        ))
+      }
+
+      if (i < angles.length - 1 && !abortRef.current) {
+        await new Promise(r => setTimeout(r, 600))
       }
     }
 
@@ -203,22 +250,17 @@ export default function CreativeFactory() {
     setProgress({ current: 0, total: 0, label: '' })
   }
 
-  const handleApprove = async (creative) => {
-    // Guardar ángulo primero
-    const { data: savedAngle } = await supabase
-      .from('angles')
-      .insert({
-        project_id: projectId,
-        tipo: creative.angle.tipo,
-        titulo: creative.angle.titulo,
-        cta: creative.angle.cta,
-        imagen_concepto: creative.angle.imagen_concepto,
-        guardado: true,
-      })
-      .select().single()
+  const handleStop = () => {
+    abortRef.current = true
+    // Mark remaining as stopped
+    setCreatives(prev => prev.map(c =>
+      c.generating ? { ...c, generating: false, error: 'Generación detenida' } : c
+    ))
+    setPhase(0)
+  }
 
+  const handleApprove = async (creative) => {
     const { data } = await supabase.from('creatives').insert({
-      angle_id: savedAngle?.id || null,
       project_id: projectId,
       user_id: user.id,
       imagen_url: creative.imageUrl,
@@ -228,10 +270,7 @@ export default function CreativeFactory() {
     setCreatives(prev => prev.map(c =>
       c._key === creative._key ? { ...c, estado: 'aprobado' } : c
     ))
-    if (data) setSavedCreatives(prev => [{ ...data, angle: creative.angle }, ...prev])
-
-    const mes = new Date().toISOString().slice(0, 7)
-    await supabase.rpc('increment_usage', { p_user_id: user.id, p_mes: mes }).catch(() => {})
+    if (data) setSavedCreatives(prev => [data, ...prev])
   }
 
   const handleDiscard = (creative) => {
@@ -247,10 +286,11 @@ export default function CreativeFactory() {
       c._key === creative._key ? { ...c, generating: true, error: null } : c
     ))
     try {
-      const imgPrompt = buildImagePrompt({ angle: creative.angle, project, branding, variationIndex: creative.variationIndex ?? 0 })
-      const imageUrl = await generateImage({ apiKey, prompt: imgPrompt })
+      const imgPrompt = buildImagePrompt({ angle: creative.angle, project, branding })
+      const rawImageUrl = await generateImage({ apiKey, prompt: imgPrompt })
+      const compositeUrl = await compositeAd({ imageUrl: rawImageUrl, angle: creative.angle, branding })
       setCreatives(prev => prev.map(c =>
-        c._key === creative._key ? { ...c, imageUrl, generating: false } : c
+        c._key === creative._key ? { ...c, imageUrl: compositeUrl, generating: false } : c
       ))
     } catch (err) {
       setCreatives(prev => prev.map(c =>
@@ -259,6 +299,19 @@ export default function CreativeFactory() {
     }
   }
 
+  const handleDownloadAll = () => {
+    const withImages = creatives.filter(c => c.imageUrl && c.estado !== 'descartado')
+    withImages.forEach((c, i) => {
+      setTimeout(() => {
+        const a = document.createElement('a')
+        a.href = c.imageUrl
+        a.download = `metodo-ads-${c.angle?.tipo || 'creativo'}-${i + 1}.jpg`
+        a.click()
+      }, i * 250)
+    })
+  }
+
+  const completedCount = creatives.filter(c => c.imageUrl && !c.generating).length
   const approvedCount = creatives.filter(c => c.estado === 'aprobado').length
   const pendingCount = creatives.filter(c => c.estado === 'pendiente' && c.imageUrl && !c.generating).length
 
@@ -274,45 +327,72 @@ export default function CreativeFactory() {
             Generador de Creativos
           </h1>
           <p className="text-text-secondary mt-2 text-sm">
-            Genera 100 creativos publicitarios listos para Meta Ads — Claude crea los textos, Gemini genera las imágenes.
+            Genera creativos publicitarios de alto impacto listos para Meta Ads.
           </p>
         </div>
-        {savedCreatives.length > 0 && (
-          <div className="badge-success text-sm px-3 py-1.5">
-            <CheckCircle2 size={14} />
-            {savedCreatives.length} aprobados
-          </div>
-        )}
       </div>
 
-      {/* Project selector + generate button */}
-      <div className="card mb-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
+      {/* Controls card */}
+      <div className="card mb-6 space-y-4">
+        {/* Proyecto + Cantidad + Botones */}
+        <div className="flex flex-col lg:flex-row gap-4 items-end">
           <div className="flex-1">
             <label className="label">Proyecto</label>
             <ProjectSelector value={projectId} onChange={setProjectId} />
           </div>
-          <button
-            onClick={handleGenerate}
-            disabled={!projectId || isGenerating}
-            className="btn-primary py-3 px-6 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-glow"
-          >
-            <Sparkles size={16} />
-            {isGenerating ? 'Generando...' : 'Generar 100 Creativos'}
-          </button>
+          <div className="w-40">
+            <label className="label">Cantidad</label>
+            <select
+              value={quantity}
+              onChange={e => setQuantity(Number(e.target.value))}
+              disabled={isGenerating}
+              className="input-field"
+            >
+              {QUANTITY_OPTIONS.map(q => (
+                <option key={q} value={q}>{q} creativos</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            {isGenerating ? (
+              <button onClick={handleStop} className="py-3 px-6 rounded-xl font-medium text-sm flex items-center gap-2 bg-status-error text-white hover:bg-status-error/90 transition-all shadow-lg">
+                <Square size={15} />
+                Parar
+              </button>
+            ) : (
+              <button
+                onClick={handleGenerate}
+                disabled={!projectId}
+                className="btn-primary py-3 px-6 disabled:opacity-50 disabled:cursor-not-allowed shadow-glow"
+              >
+                <Sparkles size={16} />
+                Generar {quantity} Creativos
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Angle chips filter */}
+        {!isGenerating && (
+          <AngleChips
+            selected={selectedAngles}
+            onToggle={toggleAngle}
+            onSelectAll={() => setSelectedAngles(new Set(ANGLE_TYPES.map(a => a.key)))}
+            onClearAll={() => setSelectedAngles(new Set())}
+          />
+        )}
 
         {/* Context indicators */}
         {project && (
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border flex-wrap">
-            <span className="text-text-muted text-xs">Contexto activo:</span>
+          <div className="flex items-center gap-3 pt-3 border-t border-border flex-wrap">
+            <span className="text-text-muted text-xs">Contexto:</span>
             <span className={`badge text-xs ${knowledge?.contenido ? 'badge-success' : 'bg-surface-3 text-text-muted border border-border'}`}>
-              {knowledge?.contenido ? '✓' : '○'} Base de Conocimiento
+              {knowledge?.contenido ? '✓' : '○'} Knowledge Base
             </span>
             <span className={`badge text-xs ${branding?.tono ? 'badge-success' : 'bg-surface-3 text-text-muted border border-border'}`}>
               {branding?.tono ? '✓' : '○'} Branding Kit
             </span>
-            <span className="badge text-xs badge-accent">✓ Proyecto cargado</span>
+            <span className="badge text-xs badge-accent">✓ Proyecto</span>
           </div>
         )}
       </div>
@@ -338,7 +418,13 @@ export default function CreativeFactory() {
           <Settings size={16} className="text-status-warning" />
         </div>
       )}
-      {error && error !== 'no_claude' && error !== 'no_google' && (
+      {error === 'no_angles' && (
+        <div className="flex items-center gap-3 bg-status-info/10 border border-status-info/30 rounded-xl px-5 py-4 mb-6">
+          <AlertTriangle size={18} className="text-status-info flex-shrink-0" />
+          <p className="text-status-info text-sm">Selecciona al menos un ángulo de venta.</p>
+        </div>
+      )}
+      {error && !['no_claude', 'no_google', 'no_angles'].includes(error) && (
         <div className="flex items-start gap-3 bg-status-error/10 border border-status-error/30 rounded-xl px-5 py-4 mb-6">
           <AlertTriangle size={18} className="text-status-error flex-shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -355,52 +441,47 @@ export default function CreativeFactory() {
         <EmptyState
           icon={Wand2}
           title="Selecciona un proyecto"
-          description="Elige un proyecto para generar tus 100 creativos listos para Meta Ads"
+          description="Elige un proyecto para generar creativos de alto impacto para Meta Ads"
         />
       ) : (
         <>
           {/* Progress */}
           {isGenerating && (
-            <GenerationProgress
-              phase={phase}
-              current={progress.current}
-              total={progress.total}
-              label={progress.label}
-            />
+            <GenerationProgress phase={phase} current={progress.current} total={progress.total} label={progress.label} />
           )}
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 mb-5 bg-surface border border-border rounded-xl p-1 w-fit">
-            <button
-              onClick={() => setTab('factory')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
-                ${tab === 'factory' ? 'bg-accent text-white shadow-glow-sm' : 'text-text-secondary hover:text-text-primary'}`}
-            >
-              <span className="flex items-center gap-2">
-                <Wand2 size={14} />
-                Sesión actual
-                {creatives.length > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === 'factory' ? 'bg-white/20 text-white' : 'bg-accent/20 text-accent-light'}`}>
-                    {creatives.length}
-                  </span>
-                )}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab('approved')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
-                ${tab === 'approved' ? 'bg-accent text-white shadow-glow-sm' : 'text-text-secondary hover:text-text-primary'}`}
-            >
-              <span className="flex items-center gap-2">
-                <CheckCircle2 size={14} />
-                Aprobados
-                {savedCreatives.length > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === 'approved' ? 'bg-white/20 text-white' : 'bg-status-success/20 text-status-success'}`}>
-                    {savedCreatives.length}
-                  </span>
-                )}
-              </span>
-            </button>
+          {/* Tabs + action bar */}
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div className="flex items-center gap-1 bg-surface border border-border rounded-xl p-1">
+              <button
+                onClick={() => setTab('factory')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                  ${tab === 'factory' ? 'bg-accent text-white shadow-glow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+              >
+                <span className="flex items-center gap-2">
+                  <Wand2 size={14} /> Sesión
+                  {creatives.length > 0 && <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === 'factory' ? 'bg-white/20' : 'bg-accent/20 text-accent-light'}`}>{creatives.length}</span>}
+                </span>
+              </button>
+              <button
+                onClick={() => setTab('approved')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                  ${tab === 'approved' ? 'bg-accent text-white shadow-glow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+              >
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Aprobados
+                  {savedCreatives.length > 0 && <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === 'approved' ? 'bg-white/20' : 'bg-status-success/20 text-status-success'}`}>{savedCreatives.length}</span>}
+                </span>
+              </button>
+            </div>
+
+            {/* Download all */}
+            {tab === 'factory' && completedCount > 0 && !isGenerating && (
+              <button onClick={handleDownloadAll} className="btn-secondary text-xs py-2 px-4">
+                <Download size={14} />
+                Descargar todas ({completedCount})
+              </button>
+            )}
           </div>
 
           {/* Tab: Sesión actual */}
@@ -412,33 +493,17 @@ export default function CreativeFactory() {
                     <Sparkles size={28} className="text-status-success" />
                   </div>
                   <h3 className="text-text-primary font-semibold text-lg mb-2">Listo para generar</h3>
-                  <p className="text-text-secondary text-sm max-w-sm mx-auto mb-4">
-                    Claude AI creará 50 ángulos de venta únicos y Gemini generará 2 imágenes por ángulo — 100 creativos listos para Meta Ads.
+                  <p className="text-text-secondary text-sm max-w-md mx-auto mb-4">
+                    Selecciona la cantidad, elige los ángulos de venta, y genera creativos publicitarios de alto impacto con IA. Cada imagen incluye texto publicitario, y recibirás el titular y CTA para copiar en Meta Ads.
                   </p>
-                  <div className="flex items-center justify-center gap-4 text-text-muted text-xs flex-wrap">
-                    <span className="flex items-center gap-1.5"><Sparkles size={12} className="text-accent-light" /> 50 ángulos con Claude</span>
-                    <span className="flex items-center gap-1.5"><Wand2 size={12} className="text-status-success" /> 100 imágenes con Gemini</span>
-                    <span className="flex items-center gap-1.5"><Info size={12} /> TÍTULO + CTA por creativo</span>
-                  </div>
                 </div>
               ) : (
                 <>
-                  {/* Summary bar */}
                   {creatives.length > 0 && (
-                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="text-text-muted">{creatives.length} creativos</span>
-                        {approvedCount > 0 && (
-                          <span className="text-status-success flex items-center gap-1">
-                            <CheckCircle2 size={13} /> {approvedCount} aprobados
-                          </span>
-                        )}
-                        {pendingCount > 0 && (
-                          <span className="text-status-warning flex items-center gap-1">
-                            <Zap size={13} /> {pendingCount} pendientes
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-3 text-sm mb-4 flex-wrap">
+                      <span className="text-text-muted">{creatives.length} creativos</span>
+                      {approvedCount > 0 && <span className="text-status-success flex items-center gap-1"><CheckCircle2 size={13} /> {approvedCount} aprobados</span>}
+                      {pendingCount > 0 && <span className="text-status-warning flex items-center gap-1"><Zap size={13} /> {pendingCount} pendientes</span>}
                     </div>
                   )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -446,7 +511,6 @@ export default function CreativeFactory() {
                       <CreativeCard
                         key={creative._key}
                         creative={creative}
-                        branding={branding}
                         onApprove={handleApprove}
                         onDiscard={handleDiscard}
                         onRetry={handleRetry}
@@ -469,12 +533,8 @@ export default function CreativeFactory() {
                 <EmptyState
                   icon={CheckCircle2}
                   title="Sin creativos aprobados"
-                  description="Genera creativos y aprueba los que quieras usar en tus campañas de Meta Ads"
-                  action={
-                    <button onClick={() => setTab('factory')} className="btn-primary">
-                      <Sparkles size={15} /> Generar creativos
-                    </button>
-                  }
+                  description="Genera creativos y aprueba los que quieras usar en tus campañas"
+                  action={<button onClick={() => setTab('factory')} className="btn-primary"><Sparkles size={15} /> Generar creativos</button>}
                 />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -483,13 +543,12 @@ export default function CreativeFactory() {
                       key={c.id}
                       creative={{
                         _key: c.id,
-                        angle: c.angle || c.angles,
+                        angle: {},
                         imageUrl: c.imagen_url,
                         estado: c.estado,
                         generating: false,
                         error: null,
                       }}
-                      branding={branding}
                     />
                   ))}
                 </div>

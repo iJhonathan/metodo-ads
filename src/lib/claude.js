@@ -15,7 +15,7 @@ export async function callClaude({ apiKey, system, prompt, maxTokens = 4096 }) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-6',
+      model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,
       system,
       messages: [{ role: 'user', content: prompt }],
@@ -36,11 +36,9 @@ export async function callClaude({ apiKey, system, prompt, maxTokens = 4096 }) {
  * Extrae JSON de una respuesta que puede contener texto antes/después del bloque JSON.
  */
 export function extractJSON(text) {
-  // Intentar bloque ```json ... ```
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenced) return JSON.parse(fenced[1].trim())
 
-  // Intentar objeto/array JSON directo
   const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
   if (jsonMatch) return JSON.parse(jsonMatch[0])
 
@@ -48,12 +46,40 @@ export function extractJSON(text) {
 }
 
 // ──────────────────────────────────────────────────────────
-// Prompt: Generador integrado de 50 creativos para Meta Ads
+// Ángulos de venta disponibles
 // ──────────────────────────────────────────────────────────
 
-export function buildCreativesPrompt({ project, knowledge, branding }) {
-  const system = `Eres un experto en marketing digital y publicidad en Meta Ads (Facebook e Instagram).
+export const ANGLE_TYPES = [
+  { key: 'dolor',          label: 'Dolor' },
+  { key: 'curiosidad',     label: 'Curiosidad' },
+  { key: 'objecion',       label: 'Objeción' },
+  { key: 'miedo',          label: 'Miedo' },
+  { key: 'resultado',      label: 'Resultado' },
+  { key: 'comparacion',    label: 'Comparación' },
+  { key: 'urgencia',       label: 'Urgencia' },
+  { key: 'testimonio',     label: 'Testimonio' },
+  { key: 'educativo',      label: 'Educativo' },
+  { key: 'provocacion',    label: 'Provocación' },
+  { key: 'identidad',      label: 'Identidad' },
+  { key: 'transformacion', label: 'Transformación' },
+  { key: 'garantia',       label: 'Garantía' },
+  { key: 'precio',         label: 'Precio' },
+  { key: 'exclusividad',   label: 'Exclusividad' },
+  { key: 'social_proof',   label: 'Prueba Social' },
+  { key: 'novedad',        label: 'Novedad' },
+  { key: 'aspiracional',   label: 'Aspiracional' },
+  { key: 'humor',          label: 'Humor' },
+  { key: 'autoridad',      label: 'Autoridad' },
+]
+
+// ──────────────────────────────────────────────────────────
+// Prompt: Generador integrado de creativos para Meta Ads
+// ──────────────────────────────────────────────────────────
+
+export function buildCreativesPrompt({ project, knowledge, branding, quantity = 100, angleTypes }) {
+  const system = `Eres un experto en marketing digital, copywriting y publicidad en Meta Ads (Facebook e Instagram).
 Tu especialidad es crear creativos publicitarios de alto impacto que generan conversiones reales.
+Todos los textos deben estar en español perfecto, sin errores gramaticales ni ortográficos.
 Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes ni después.`
 
   const brandingInfo = branding ? `
@@ -65,7 +91,11 @@ Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes 
     ? `\n**Base de conocimiento del producto:**\n${knowledge.contenido}`
     : ''
 
-  const prompt = `Genera exactamente 50 creativos publicitarios para Meta Ads para el siguiente producto/servicio.
+  const angleList = angleTypes && angleTypes.length > 0
+    ? angleTypes.join(', ')
+    : ANGLE_TYPES.map(a => a.key).join(', ')
+
+  const prompt = `Genera exactamente ${quantity} creativos publicitarios para Meta Ads.
 Cada creativo debe tocar un ángulo de venta diferente y estar listo para usar en Facebook e Instagram.
 
 **INFORMACIÓN DEL PROYECTO:**
@@ -76,17 +106,40 @@ Cada creativo debe tocar un ángulo de venta diferente y estar listo para usar e
 ${brandingInfo}
 ${knowledgeInfo}
 
-**DISTRIBUYE los 50 creativos entre estos ángulos de marketing:**
-dolor, curiosidad, objecion, miedo, resultado, comparacion, urgencia, testimonio,
-educativo, provocacion, identidad, transformacion, garantia, precio, exclusividad,
-social_proof, novedad, aspiracional, humor, autoridad
+**DISTRIBUYE los ${quantity} creativos entre estos ángulos de marketing:**
+${angleList}
 
-**INSTRUCCIONES POR CAMPO:**
-- tipo: uno de los ángulos listados arriba
-- texto_imagen: El copy que aparece VISUALMENTE SOBRE LA IMAGEN del anuncio. Debe ser corto, impactante, tipo titular publicitario. Máximo 8 palabras. Diferente al titulo. Ejemplo: "¿Listo para cambiar tu vida?" o "Resultados reales en 30 días"
-- titulo: El texto que va en el campo "Titular" de Meta Ads. Diferente al texto_imagen, más descriptivo y persuasivo. Máximo 40 caracteres.
-- cta: Texto MUY CORTO para el botón de acción de Meta Ads. En MAYÚSCULAS, máximo 3 palabras. Ejemplos: "AGENDA AHORA", "VER PRECIO", "QUIERO ACCESO", "EMPIEZA HOY", "CUPOS LIMITADOS", "LO QUIERO".
-- imagen_concepto: Descripción visual detallada para generar la imagen de fondo. Describe escena, personas, ambiente, colores. 2-3 oraciones. La zona inferior debe ser oscura para que el texto se lea bien.
+**INSTRUCCIONES POR CAMPO (lee con atención):**
+
+1. "tipo": Uno de los ángulos listados arriba.
+
+2. "texto_imagen": El TITULAR VISUAL que aparecerá SOBRE LA IMAGEN del anuncio. Debe ser:
+   - Corto e impactante (máximo 8 palabras)
+   - Escrito para impactar visualmente dentro de la imagen
+   - DIFERENTE al campo "titulo"
+   - En español correcto, sin errores
+   - Ejemplo: "¿Listo para cambiar tu vida?" o "Resultados reales en 30 días"
+
+3. "titulo": El texto que va en el campo "Titular" de Meta Ads (separado de la imagen). Debe ser:
+   - Más descriptivo y persuasivo que texto_imagen
+   - Máximo 40 caracteres
+   - DIFERENTE al texto_imagen
+   - En español correcto, sin errores
+
+4. "cta": Texto MUY CORTO para el botón de acción de Meta Ads. Debe ser:
+   - En MAYÚSCULAS
+   - Máximo 3 palabras
+   - Ejemplos: "AGENDA AHORA", "VER PRECIO", "QUIERO ACCESO", "EMPIEZA HOY", "CUPOS LIMITADOS"
+
+5. "imagen_concepto": Descripción visual EN INGLÉS para generar la imagen de fondo con IA. Debe:
+   - Describir escena, personas, ambiente, iluminación y composición en 2-3 oraciones
+   - Indicar que la zona inferior debe ser más oscura para legibilidad del texto
+   - NO incluir texto en la imagen, el texto se agrega después digitalmente
+
+**REGLAS CRÍTICAS:**
+- Todos los textos en español DEBEN estar perfectamente escritos sin errores gramaticales
+- texto_imagen y titulo SIEMPRE deben ser textos DIFERENTES entre sí
+- Varía el estilo y enfoque entre creativos, no repitas fórmulas
 
 Responde SOLO con este JSON (sin texto adicional):
 {
@@ -98,37 +151,6 @@ Responde SOLO con este JSON (sin texto adicional):
       "cta": "AGENDA AHORA",
       "imagen_concepto": "..."
     }
-  ]
-}`
-
-  return { system, prompt }
-}
-
-// Mantener buildAnglesPrompt por compatibilidad con página de Ángulos
-export function buildAnglesPrompt({ project, knowledge, branding }) {
-  const system = `Eres un experto en copywriting y publicidad digital para Meta Ads (Facebook e Instagram).
-Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes ni después.`
-
-  const brandingInfo = branding ? `
-**Tono:** ${branding.tono || 'No especificado'}
-**Estilo:** ${branding.estilo || 'No especificado'}
-**Público:** ${branding.publico_detallado || 'No especificado'}` : ''
-
-  const knowledgeInfo = knowledge?.contenido
-    ? `\n**Base de conocimiento:**\n${knowledge.contenido}` : ''
-
-  const prompt = `Genera exactamente 50 ángulos de venta para este producto/servicio.
-
-**PROYECTO:** ${project.nombre}
-- Producto: ${project.producto || 'No especificado'}
-- Público: ${project.publico || 'No especificado'}
-- Propuesta de valor: ${project.propuesta_valor || 'No especificada'}
-${brandingInfo}${knowledgeInfo}
-
-Responde SOLO con este JSON:
-{
-  "angulos": [
-    { "tipo": "dolor", "headline": "...", "copy": "...", "visual_sugerido": "..." }
   ]
 }`
 

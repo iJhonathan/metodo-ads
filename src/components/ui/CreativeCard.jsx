@@ -4,26 +4,6 @@ import {
   AlertCircle, RefreshCw, Copy, Check
 } from 'lucide-react'
 
-const TIPO_COLORS = {
-  dolor: '#ef4444', curiosidad: '#eab308', objecion: '#f97316',
-  miedo: '#f43f5e', resultado: '#10b981', comparacion: '#3b82f6',
-  urgencia: '#dc2626', testimonio: '#14b8a6', educativo: '#06b6d4',
-  provocacion: '#ec4899', identidad: '#6366f1', transformacion: '#059669',
-  garantia: '#84cc16', precio: '#f59e0b', exclusividad: '#8b5cf6',
-  social_proof: '#0ea5e9', novedad: '#a855f7', aspiracional: '#d946ef',
-  humor: '#fbbf24', autoridad: '#60a5fa',
-}
-
-const TIPO_LABELS = {
-  dolor: 'Dolor', curiosidad: 'Curiosidad', objecion: 'Objeción',
-  miedo: 'Miedo', resultado: 'Resultado', comparacion: 'Comparación',
-  urgencia: 'Urgencia', testimonio: 'Testimonio', educativo: 'Educativo',
-  provocacion: 'Provocación', identidad: 'Identidad', transformacion: 'Transformación',
-  garantia: 'Garantía', precio: 'Precio', exclusividad: 'Exclusividad',
-  social_proof: 'Prueba Social', novedad: 'Novedad', aspiracional: 'Aspiracional',
-  humor: 'Humor', autoridad: 'Autoridad',
-}
-
 function CopyField({ label, value, accent }) {
   const [copied, setCopied] = useState(false)
 
@@ -33,39 +13,41 @@ function CopyField({ label, value, accent }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  if (!value) return null
+
   return (
-    <div className="bg-background border border-border rounded-xl px-3 py-2.5">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-text-muted text-xs font-semibold uppercase tracking-wider">{label}</span>
-        <button
-          onClick={handleCopy}
-          className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg transition-all
-            ${copied
-              ? 'bg-status-success/20 text-status-success'
-              : 'text-text-muted hover:text-text-primary hover:bg-surface-3'
-            }`}
-        >
-          {copied ? <Check size={11} /> : <Copy size={11} />}
-          {copied ? 'Copiado' : 'Copiar'}
-        </button>
-      </div>
-      <p className={`text-sm font-medium leading-snug ${accent ? 'text-accent-light font-bold tracking-wide' : 'text-text-primary'}`}>
-        {value || '—'}
+    <div className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-xl">
+      <span className="text-text-muted text-xs font-semibold uppercase tracking-wider flex-shrink-0 w-10">{label}</span>
+      <p className={`text-sm font-medium leading-snug flex-1 truncate ${accent ? 'text-accent-light font-bold tracking-wide' : 'text-text-primary'}`}>
+        {value}
       </p>
+      <button
+        onClick={handleCopy}
+        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all flex-shrink-0
+          ${copied
+            ? 'bg-status-success/20 text-status-success'
+            : 'text-text-muted hover:text-text-primary hover:bg-surface-3'
+          }`}
+      >
+        {copied ? <Check size={11} /> : <Copy size={11} />}
+      </button>
     </div>
   )
 }
 
+const ESTADO_CONFIG = {
+  aprobado:   { label: 'Aprobado',   color: 'bg-status-success/20 border-status-success/40 text-status-success' },
+  descartado: { label: 'Descartado', color: 'bg-status-error/20 border-status-error/40 text-status-error' },
+  pendiente:  { label: 'Pendiente',  color: 'bg-status-warning/20 border-status-warning/40 text-status-warning' },
+}
+
 export default function CreativeCard({
   creative,
-  branding,
   onApprove,
   onDiscard,
   onRetry,
 }) {
-  const tipoColor = TIPO_COLORS[creative.angle?.tipo] || '#7c3aed'
-
-  const textoImagen = creative.angle?.texto_imagen || creative.angle?.headline || ''
+  const estadoConf = ESTADO_CONFIG[creative.estado] || ESTADO_CONFIG.pendiente
   const titulo = creative.angle?.titulo || ''
   const cta = creative.angle?.cta || ''
 
@@ -84,8 +66,15 @@ export default function CreativeCard({
         'border-border hover:border-border-hover shadow-card hover:shadow-card-hover'
       }`}
     >
-      {/* Image */}
-      <div className="relative aspect-square bg-surface-3 overflow-hidden">
+      {/* TÍTULO — arriba de la imagen */}
+      {titulo && (
+        <div className="p-3 pb-0">
+          <CopyField label="Título" value={titulo} />
+        </div>
+      )}
+
+      {/* IMAGEN — centro (ya viene compositada con texto_imagen + CTA pill) */}
+      <div className="relative aspect-square bg-surface-3 overflow-hidden m-3 rounded-xl">
         {creative.generating ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center animate-pulse-slow">
@@ -109,42 +98,15 @@ export default function CreativeCard({
           <>
             <img
               src={creative.imageUrl}
-              alt={titulo}
+              alt={creative.angle?.texto_imagen || 'Creativo'}
               className="w-full h-full object-cover"
             />
-            {/* Gradient overlay para legibilidad */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-
-            {/* Tipo badge */}
-            <div className="absolute top-3 left-3">
-              <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: tipoColor + 'dd' }}>
-                {TIPO_LABELS[creative.angle?.tipo] || creative.angle?.tipo}
-              </span>
-            </div>
-
             {/* Estado badge */}
-            {creative.estado === 'aprobado' && (
-              <div className="absolute top-3 right-3">
-                <span className="badge border text-xs font-semibold bg-status-success/20 border-status-success/40 text-status-success">
-                  Aprobado
+            {creative.estado !== 'pendiente' && (
+              <div className="absolute top-2 right-2">
+                <span className={`badge border text-xs font-semibold ${estadoConf.color}`}>
+                  {estadoConf.label}
                 </span>
-              </div>
-            )}
-
-            {/* Texto visual sobre la imagen */}
-            {textoImagen && (
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <p className="text-white font-bold text-sm leading-snug drop-shadow-lg">
-                  {textoImagen}
-                </p>
-                {cta && (
-                  <span
-                    className="inline-block mt-2 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg"
-                    style={{ backgroundColor: tipoColor }}
-                  >
-                    {cta}
-                  </span>
-                )}
               </div>
             )}
           </>
@@ -155,11 +117,10 @@ export default function CreativeCard({
         )}
       </div>
 
-      {/* Copyable fields */}
-      {(titulo || cta) && (
-        <div className="p-3 space-y-2 border-t border-border bg-surface">
-          {titulo && <CopyField label="Titular (Meta Ads)" value={titulo} />}
-          {cta && <CopyField label="Botón CTA (Meta Ads)" value={cta} accent />}
+      {/* CTA — debajo de la imagen */}
+      {cta && (
+        <div className="px-3">
+          <CopyField label="CTA" value={cta} accent />
         </div>
       )}
 
