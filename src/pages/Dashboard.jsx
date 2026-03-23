@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FolderKanban, ImageIcon, CheckSquare,
-  Plus, Lightbulb, Images, ArrowRight,
+  Plus, Wand2, Images, ArrowRight,
   Zap, AlertTriangle
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -69,10 +69,10 @@ export default function Dashboard() {
       color: 'accent',
     },
     {
-      icon: Lightbulb,
-      label: 'Generar Ángulos',
-      description: 'Crea ángulos de venta con IA',
-      path: '/angles',
+      icon: Wand2,
+      label: 'Generar Creativos',
+      description: 'Genera creativos de alto impacto con IA',
+      path: '/factory',
       color: 'warning',
     },
     {

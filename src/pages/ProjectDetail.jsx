@@ -285,9 +285,8 @@ export default function ProjectDetail() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {[
-          { label: 'Ángulos generados', value: stats.angles, color: 'text-status-warning' },
           { label: 'Creativos totales', value: stats.creatives, color: 'text-status-info' },
           { label: 'Aprobados', value: stats.approved, color: 'text-status-success' },
         ].map(s => (
@@ -344,16 +343,9 @@ export default function ProjectDetail() {
             color="warning"
           />
           <ModuleLink
-            icon={Lightbulb}
-            label="Ángulos de Venta"
-            description="Genera ángulos publicitarios con Claude AI"
-            path={`/angles?project=${id}`}
-            color="info"
-          />
-          <ModuleLink
             icon={Wand2}
             label="Fábrica Creativa"
-            description="Genera imágenes de creativos con Google Gemini"
+            description="Genera creativos publicitarios de alto impacto para Meta Ads"
             path={`/factory?project=${id}`}
             color="success"
           />
