@@ -10,14 +10,42 @@ import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
 
 const TIPS = [
-  '¿Qué problema resuelve tu producto?',
-  '¿Cuáles son los beneficios principales?',
-  '¿Qué objeciones suelen tener tus clientes?',
-  '¿Cuál es tu propuesta de valor única?',
-  '¿Qué resultados han obtenido tus clientes?',
-  '¿Cuál es la historia de tu marca?',
-  '¿Qué te diferencia de la competencia?',
-  '¿Qué testimonios o casos de éxito tienes?',
+  {
+    emoji: '🔄',
+    titulo: 'TRANSFORMACIÓN DEL PRODUCTO (MUY IMPORTANTE)',
+    desc: 'Describe claramente el ANTES y el DESPUÉS de tu producto',
+    ejemplo: 'Antes: cabello opaco, frizz, puntas abiertas, sin brillo. Después: cabello liso, brillante, suave, manejable, sin frizz.',
+  },
+  {
+    emoji: '😣',
+    titulo: 'DOLORES Y PROBLEMAS DEL CLIENTE',
+    desc: '¿Qué frustraciones tiene tu cliente antes de encontrar tu producto?',
+    ejemplo: 'Gasta dinero en tratamientos que duran poco, le da pena salir sin arreglar el cabello, dedica horas al secado.',
+  },
+  {
+    emoji: '🎯',
+    titulo: 'RESULTADOS ESPECÍFICOS',
+    desc: 'Incluye números, tiempos y resultados concretos si los tienes',
+    ejemplo: 'Resultado visible desde la primera aplicación, dura hasta 6 meses, reduce el tiempo de secado en un 70%.',
+  },
+  {
+    emoji: '🗣️',
+    titulo: 'OBJECIONES COMUNES',
+    desc: '¿Qué excusas o dudas tienen tus clientes para no comprar?',
+    ejemplo: 'Es muy caro, ya probé otros y no funcionaron, daña el cabello, solo funciona para ciertos tipos de cabello.',
+  },
+  {
+    emoji: '✅',
+    titulo: 'TESTIMONIOS Y CASOS DE ÉXITO',
+    desc: 'Frases reales de clientes satisfechos',
+    ejemplo: 'María, 35 años: "Mi cabello quedó increíble desde la primera vez, no lo puedo creer."',
+  },
+  {
+    emoji: '🏆',
+    titulo: 'DIFERENCIADOR ÚNICO',
+    desc: '¿Qué hace único a tu producto frente a la competencia?',
+    ejemplo: 'Fórmula sin formol, apta para cabello teñido, resultado visible desde la primera sesión.',
+  },
 ]
 
 const PLACEHOLDER = `Ejemplo de lo que puedes incluir:
@@ -157,18 +185,30 @@ export default function KnowledgeBase() {
             >
               <div className="flex items-center gap-2.5">
                 <Lightbulb size={16} className="text-accent-light" />
-                <span className="text-text-primary font-medium text-sm">¿Qué incluir en la base de conocimiento?</span>
+                <span className="text-text-primary font-medium text-sm">¿Qué información incluir para mejores creativos?</span>
               </div>
               {showTips ? <ChevronUp size={15} className="text-text-muted" /> : <ChevronDown size={15} className="text-text-muted" />}
             </button>
             {showTips && (
-              <div className="px-5 pb-4 pt-1 grid grid-cols-2 gap-2">
+              <div className="px-5 pb-5 pt-2 space-y-4">
                 {TIPS.map((tip, i) => (
-                  <div key={i} className="flex items-start gap-2 text-text-secondary text-xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 flex-shrink-0" />
-                    {tip}
+                  <div key={i} className="flex gap-3">
+                    <span className="text-xl flex-shrink-0 mt-0.5">{tip.emoji}</span>
+                    <div>
+                      <p className="text-text-primary text-xs font-semibold">{tip.titulo}</p>
+                      <p className="text-text-secondary text-xs mt-0.5">{tip.desc}</p>
+                      <p className="text-text-muted text-xs mt-1 italic leading-relaxed">
+                        Ejemplo: {tip.ejemplo}
+                      </p>
+                    </div>
                   </div>
                 ))}
+                <div className="pt-2 border-t border-accent/20">
+                  <p className="text-accent-light text-xs font-medium flex items-start gap-1.5">
+                    <span className="mt-0.5">💡</span>
+                    Mientras más detallada sea la transformación (ANTES → DESPUÉS), mejores serán los creativos de Antes/Después que genere la IA.
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -234,8 +274,8 @@ export default function KnowledgeBase() {
           <div className="flex items-start gap-3 bg-surface-3 border border-border rounded-xl px-4 py-3.5">
             <Info size={16} className="text-text-muted flex-shrink-0 mt-0.5" />
             <p className="text-text-muted text-xs leading-relaxed">
-              Esta información se incluye automáticamente como contexto cuando generas ángulos de venta en el módulo <strong className="text-text-secondary">Ángulos de Venta</strong>.
-              Cuanto más detallada sea, más precisos y relevantes serán los ángulos generados por la IA.
+              Esta información se usa automáticamente como contexto al generar creativos en la <strong className="text-text-secondary">Fábrica Creativa</strong>.
+              Cuanto más detallada sea, más precisos, relevantes y personalizados serán los creativos generados por la IA.
             </p>
           </div>
         </div>
