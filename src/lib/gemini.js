@@ -51,7 +51,6 @@ async function tryImagenPredict({ apiKey, prompt, model }) {
       parameters: {
         sampleCount: 1,
         aspectRatio: '1:1',
-        language: 'es',
         safetyFilterLevel: 'block_few',
         personGeneration: 'allow_adult',
       },
@@ -85,7 +84,7 @@ async function tryGeminiGenerateContent({ apiKey, prompt, model }) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE', 'TEXT'], language: 'es' },
+      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
     }),
   })
 
