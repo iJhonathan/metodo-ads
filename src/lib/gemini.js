@@ -10,7 +10,7 @@
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 // Modelo activo en el último intento exitoso (para mostrar en UI)
-export let activeModel = 'imagen-4-generate'
+export let activeModel = 'imagen-4.0-fast-generate-001'
 
 // ─────────────────────────────────────────────────────────────
 // DIAGNÓSTICO: lista todos los modelos disponibles para la API key
@@ -109,11 +109,13 @@ async function tryGeminiGenerateContent({ apiKey, prompt, model }) {
 
 // ─────────────────────────────────────────────────────────────
 // Lista de modelos con su handler correspondiente
+// Nombres verificados con ListModels de la API key real
 // ─────────────────────────────────────────────────────────────
 const MODEL_CHAIN = [
-  { model: 'imagen-4-generate',                          handler: tryImagenPredict },
-  { model: 'gemini-2.5-flash-preview-image-generation',  handler: tryGeminiGenerateContent },
-  { model: 'gemini-2.0-flash-preview-image-generation',  handler: tryGeminiGenerateContent },
+  { model: 'imagen-4.0-fast-generate-001', handler: tryImagenPredict },        // Imagen 4 rápido
+  { model: 'gemini-2.5-flash-image',       handler: tryGeminiGenerateContent }, // Gemini 2.5 imagen
+  { model: 'gemini-3.1-flash-image-preview', handler: tryGeminiGenerateContent }, // Gemini 3.1 imagen
+  { model: 'imagen-4.0-generate-001',      handler: tryImagenPredict },         // Imagen 4 estándar
 ]
 
 // ─────────────────────────────────────────────────────────────
