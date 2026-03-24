@@ -99,30 +99,51 @@ export async function compositeAd({ imageUrl, angle, branding }) {
   ctx.font = 'bold 32px Arial'
   ctx.fillText(ctaText, ctaX + 32, ctaY + ctaH / 2)
 
-  // 5. Headline sobre la imagen (texto_imagen)
+  // 5. Subtexto bajo el headline
+  const subtextoText = (angle.subtexto_imagen || '').trim()
+  let subtextoBlockH = 0
+  if (subtextoText) {
+    ctx.font = '400 30px Arial'
+    const subtextoLines = wrapText(ctx, subtextoText, SIZE - PAD * 2)
+    subtextoBlockH = subtextoLines.length * 38 + 12
+  }
+
+  // 6. Headline sobre la imagen (texto_imagen)
   const headlineText = (angle.texto_imagen || angle.headline || '').trim()
   if (headlineText) {
-    ctx.font = 'bold 64px Arial'
+    ctx.font = 'bold 62px Arial'
     ctx.fillStyle = '#ffffff'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'alphabetic'
 
-    // Sombra para legibilidad
     ctx.shadowColor = 'rgba(0,0,0,0.9)'
     ctx.shadowBlur = 16
     ctx.shadowOffsetX = 0
     ctx.shadowOffsetY = 3
 
     const lines = wrapText(ctx, headlineText, SIZE - PAD * 2)
-    const lineH = 78
+    const lineH = 76
     const totalH = lines.length * lineH
-    const startY = ctaY - 36 - totalH
+    const startY = ctaY - 20 - subtextoBlockH - totalH
 
     lines.forEach((line, i) => {
       ctx.fillText(line, PAD, startY + (i + 1) * lineH)
     })
 
-    // Reset shadow
+    // Subtexto debajo del headline
+    if (subtextoText) {
+      const subtextoLines = wrapText(ctx, subtextoText, SIZE - PAD * 2)
+      const subStartY = startY + totalH + 12
+      ctx.font = '400 30px Arial'
+      ctx.fillStyle = 'rgba(255,255,255,0.88)'
+      ctx.shadowColor = 'rgba(0,0,0,0.8)'
+      ctx.shadowBlur = 10
+
+      subtextoLines.forEach((line, i) => {
+        ctx.fillText(line, PAD, subStartY + (i + 1) * 38)
+      })
+    }
+
     ctx.shadowColor = 'transparent'
     ctx.shadowBlur = 0
     ctx.shadowOffsetY = 0

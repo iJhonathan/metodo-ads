@@ -9,9 +9,22 @@ import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Modal from '../components/ui/Modal'
 import { isDemoMode, DEMO_PROJECTS } from '../lib/demo'
 
+const TIPOS_NEGOCIO = [
+  { value: 'salon_belleza', label: 'Salón de belleza / Estética' },
+  { value: 'curso_digital', label: 'Curso o producto digital' },
+  { value: 'ecommerce', label: 'Tienda online / Ecommerce' },
+  { value: 'restaurante', label: 'Restaurante / Gastronomía' },
+  { value: 'fitness', label: 'Fitness / Entrenamiento / Salud' },
+  { value: 'inmobiliaria', label: 'Inmobiliaria / Propiedades' },
+  { value: 'agencia', label: 'Agencia de marketing / Servicios' },
+  { value: 'retail', label: 'Tienda física / Retail' },
+  { value: 'medico', label: 'Salud / Medicina / Bienestar' },
+  { value: 'otro', label: 'Otro (usar descripción del producto)' },
+]
+
 function NewProjectModal({ open, onClose, onCreated }) {
   const { user } = useAuth()
-  const [form, setForm] = useState({ nombre: '', descripcion: '', producto: '', publico: '', propuesta_valor: '' })
+  const [form, setForm] = useState({ nombre: '', descripcion: '', producto: '', publico: '', propuesta_valor: '', tipo_negocio: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,7 +43,7 @@ function NewProjectModal({ open, onClose, onCreated }) {
     if (err) { setError(err.message); setLoading(false); return }
     onCreated(data)
     onClose()
-    setForm({ nombre: '', descripcion: '', producto: '', publico: '', propuesta_valor: '' })
+    setForm({ nombre: '', descripcion: '', producto: '', publico: '', propuesta_valor: '', tipo_negocio: '' })
     setLoading(false)
   }
 
@@ -42,6 +55,15 @@ function NewProjectModal({ open, onClose, onCreated }) {
         <div>
           <label className="label">Nombre del proyecto *</label>
           <input className="input-field" value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Ej: Campaña Q1 - Producto X" />
+        </div>
+        <div>
+          <label className="label">Tipo de negocio</label>
+          <select className="input-field" value={form.tipo_negocio} onChange={e => set('tipo_negocio', e.target.value)}>
+            <option value="">Seleccionar tipo...</option>
+            {TIPOS_NEGOCIO.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="label">Descripción</label>

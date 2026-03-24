@@ -3,6 +3,7 @@ import {
   CheckCircle2, XCircle, Download, Loader2,
   AlertCircle, RefreshCw, Copy, Check
 } from 'lucide-react'
+import { ANGLE_TYPES } from '../../lib/claude'
 
 function CopyField({ label, value, accent }) {
   const [copied, setCopied] = useState(false)
@@ -41,6 +42,29 @@ const ESTADO_CONFIG = {
   pendiente:  { label: 'Pendiente',  color: 'bg-status-warning/20 border-status-warning/40 text-status-warning' },
 }
 
+const ANGLE_BADGE_COLOR = {
+  dolor:         'bg-red-500/15 border-red-500/30 text-red-400',
+  curiosidad:    'bg-blue-500/15 border-blue-500/30 text-blue-400',
+  urgencia:      'bg-orange-500/15 border-orange-500/30 text-orange-400',
+  resultado:     'bg-green-500/15 border-green-500/30 text-green-400',
+  social_proof:  'bg-sky-500/15 border-sky-500/30 text-sky-400',
+  transformacion:'bg-pink-500/15 border-pink-500/30 text-pink-400',
+  miedo:         'bg-rose-600/15 border-rose-600/30 text-rose-400',
+  objecion:      'bg-purple-500/15 border-purple-500/30 text-purple-400',
+  testimonio:    'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+  precio:        'bg-yellow-500/15 border-yellow-500/30 text-yellow-400',
+  novedad:       'bg-cyan-500/15 border-cyan-500/30 text-cyan-400',
+  aspiracional:  'bg-violet-500/15 border-violet-500/30 text-violet-400',
+  educativo:     'bg-indigo-500/15 border-indigo-500/30 text-indigo-400',
+  humor:         'bg-amber-500/15 border-amber-500/30 text-amber-400',
+  garantia:      'bg-teal-500/15 border-teal-500/30 text-teal-400',
+  exclusividad:  'bg-fuchsia-500/15 border-fuchsia-500/30 text-fuchsia-400',
+  autoridad:     'bg-slate-400/15 border-slate-400/30 text-slate-300',
+  provocacion:   'bg-red-700/15 border-red-700/30 text-red-300',
+  comparacion:   'bg-blue-700/15 border-blue-700/30 text-blue-300',
+  identidad:     'bg-purple-700/15 border-purple-700/30 text-purple-300',
+}
+
 export default function CreativeCard({
   creative,
   onApprove,
@@ -50,6 +74,9 @@ export default function CreativeCard({
   const estadoConf = ESTADO_CONFIG[creative.estado] || ESTADO_CONFIG.pendiente
   const titulo = creative.angle?.titulo || ''
   const cta = creative.angle?.cta || ''
+  const tipo = creative.angle?.tipo || ''
+  const tipoLabel = ANGLE_TYPES.find(a => a.key === tipo)?.label || tipo
+  const angleBadgeColor = ANGLE_BADGE_COLOR[tipo] || 'bg-surface-3 border-border text-text-muted'
 
   const handleDownload = () => {
     if (!creative.imageUrl) return
@@ -66,10 +93,19 @@ export default function CreativeCard({
         'border-border hover:border-border-hover shadow-card hover:shadow-card-hover'
       }`}
     >
-      {/* TÍTULO — arriba de la imagen */}
+      {/* ÁNGULO badge */}
+      {tipoLabel && (
+        <div className="px-3 pt-3 pb-0">
+          <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-lg border ${angleBadgeColor}`}>
+            {tipoLabel}
+          </span>
+        </div>
+      )}
+
+      {/* COPY — arriba de la imagen (copy de Facebook, más largo) */}
       {titulo && (
         <div className="p-3 pb-0">
-          <CopyField label="Título" value={titulo} />
+          <CopyField label="Copy" value={titulo} />
         </div>
       )}
 

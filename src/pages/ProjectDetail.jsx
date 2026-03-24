@@ -25,6 +25,19 @@ function getInitials(name = '') {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
+const TIPOS_NEGOCIO = [
+  { value: 'salon_belleza', label: 'Salón de belleza / Estética' },
+  { value: 'curso_digital', label: 'Curso o producto digital' },
+  { value: 'ecommerce', label: 'Tienda online / Ecommerce' },
+  { value: 'restaurante', label: 'Restaurante / Gastronomía' },
+  { value: 'fitness', label: 'Fitness / Entrenamiento / Salud' },
+  { value: 'inmobiliaria', label: 'Inmobiliaria / Propiedades' },
+  { value: 'agencia', label: 'Agencia de marketing / Servicios' },
+  { value: 'retail', label: 'Tienda física / Retail' },
+  { value: 'medico', label: 'Salud / Medicina / Bienestar' },
+  { value: 'otro', label: 'Otro (usar descripción del producto)' },
+]
+
 function EditProjectModal({ project, open, onClose, onSaved }) {
   const [form, setForm] = useState({
     nombre: project?.nombre || '',
@@ -32,6 +45,7 @@ function EditProjectModal({ project, open, onClose, onSaved }) {
     producto: project?.producto || '',
     publico: project?.publico || '',
     propuesta_valor: project?.propuesta_valor || '',
+    tipo_negocio: project?.tipo_negocio || '',
   })
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -43,6 +57,7 @@ function EditProjectModal({ project, open, onClose, onSaved }) {
       producto: project.producto || '',
       publico: project.publico || '',
       propuesta_valor: project.propuesta_valor || '',
+      tipo_negocio: project.tipo_negocio || '',
     })
   }, [project])
 
@@ -70,6 +85,15 @@ function EditProjectModal({ project, open, onClose, onSaved }) {
         <div>
           <label className="label">Descripción</label>
           <textarea className="input-field resize-none" rows={2} value={form.descripcion} onChange={e => set('descripcion', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Tipo de negocio</label>
+          <select className="input-field" value={form.tipo_negocio} onChange={e => set('tipo_negocio', e.target.value)}>
+            <option value="">Seleccionar tipo...</option>
+            {TIPOS_NEGOCIO.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

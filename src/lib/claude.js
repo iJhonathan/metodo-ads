@@ -113,32 +113,34 @@ ${angleList}
 
 1. "tipo": Uno de los ángulos listados arriba.
 
-2. "texto_imagen": El TITULAR VISUAL que aparecerá SOBRE LA IMAGEN del anuncio. Debe ser:
-   - Corto e impactante (máximo 8 palabras)
-   - Escrito para impactar visualmente dentro de la imagen
+2. "texto_imagen": El TITULAR PRINCIPAL que aparecerá en LETRAS GRANDES sobre la imagen. Debe ser:
+   - Impactante y directo (máximo 10 palabras)
+   - Diseñado para detener el scroll y generar emoción inmediata
    - DIFERENTE al campo "titulo"
-   - En español correcto, sin errores
-   - Ejemplo: "¿Listo para cambiar tu vida?" o "Resultados reales en 30 días"
+   - En español perfecto, sin errores
+   - Ejemplo: "¿Sigues sufriendo con el mismo problema?" o "Resultados reales desde el día 1"
 
-3. "titulo": El texto que va en el campo "Titular" de Meta Ads (separado de la imagen). Debe ser:
-   - Más descriptivo y persuasivo que texto_imagen
-   - Máximo 40 caracteres
-   - DIFERENTE al texto_imagen
-   - En español correcto, sin errores
+3. "subtexto_imagen": El TEXTO DE APOYO que aparece bajo el titular en la imagen. Debe ser:
+   - Breve y complementario al texto_imagen (máximo 15 palabras)
+   - Refuerza el titular con un beneficio o urgencia específica
+   - En español perfecto, sin errores
+   - Ejemplo: "Miles de personas ya lo comprobaron. Ahora es tu turno."
 
-4. "cta": Texto MUY CORTO para el botón de acción de Meta Ads. Debe ser:
+4. "titulo": El COPY COMPLETO para el texto del post de Facebook/Instagram. Debe ser:
+   - Entre 80 y 150 caracteres
+   - Incluir el beneficio principal y un gancho de curiosidad o urgencia
+   - MÁS largo y descriptivo que texto_imagen
+   - En español perfecto, sin errores
+   - Ejemplo: "¿Cansado de gastar en tratamientos que no funcionan? Esta solución natural te da resultados en 30 días o te devolvemos tu dinero."
+
+5. "cta": Texto MUY CORTO para el botón de llamada a la acción. Debe ser:
    - En MAYÚSCULAS
-   - Máximo 3 palabras
-   - Ejemplos: "AGENDA AHORA", "VER PRECIO", "QUIERO ACCESO", "EMPIEZA HOY", "CUPOS LIMITADOS"
-
-5. "imagen_concepto": Descripción visual EN INGLÉS para generar la imagen de fondo con IA. Debe:
-   - Describir escena, personas, ambiente, iluminación y composición en 2-3 oraciones
-   - Indicar que la zona inferior debe ser más oscura para legibilidad del texto
-   - NO incluir texto en la imagen, el texto se agrega después digitalmente
+   - Máximo 4 palabras
+   - Ejemplos: "AGENDA AHORA", "VER PRECIO", "QUIERO ACCESO", "EMPIEZA HOY", "LO QUIERO"
 
 **REGLAS CRÍTICAS:**
 - Todos los textos en español DEBEN estar perfectamente escritos sin errores gramaticales
-- texto_imagen y titulo SIEMPRE deben ser textos DIFERENTES entre sí
+- texto_imagen, subtexto_imagen y titulo SIEMPRE deben ser textos DIFERENTES entre sí
 - Varía el estilo y enfoque entre creativos, no repitas fórmulas
 
 Responde SOLO con este JSON (sin texto adicional):
@@ -147,9 +149,9 @@ Responde SOLO con este JSON (sin texto adicional):
     {
       "tipo": "dolor",
       "texto_imagen": "...",
+      "subtexto_imagen": "...",
       "titulo": "...",
-      "cta": "AGENDA AHORA",
-      "imagen_concepto": "..."
+      "cta": "AGENDA AHORA"
     }
   ]
 }`

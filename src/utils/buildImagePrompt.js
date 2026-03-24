@@ -1,232 +1,143 @@
 /**
- * buildImagePrompt — Genera prompts en ESPAÑOL para Google AI Studio Imagen 4.
- * El prompt está 100% en español para evitar que Gemini coloque texto en inglés en la imagen.
+ * buildImagePrompt — Prompt NARRATIVO en español para Google AI Studio Imagen 4.
+ * Sin etiquetas técnicas en inglés que Gemini pueda copiar como texto en la imagen.
  *
  * @param {object} angle       — Ángulo generado por Claude
  * @param {object} project     — Proyecto del usuario
  * @param {object} brandingKit — Branding kit con campos de audiencia
  * @param {object} knowledge   — Base de conocimiento del proyecto
- * @returns {string}           — Prompt listo para Imagen 4
+ * @param {number} variationIndex — Índice de composición (0-4)
+ * @returns {string}           — Prompt narrativo listo para Imagen 4
  */
 
-// ── Descripción dinámica del sujeto según audiencia ───────────────────────
-function construirDescripcionSujeto(brandingKit) {
-  const generoMap = {
-    'Mujeres': 'mujer',
-    'Hombres': 'hombre',
-    'Todos (mixto)': 'persona',
-  }
-  const genero = generoMap[brandingKit?.genero] || 'persona'
-
-  const edad = brandingKit?.edad_desde && brandingKit?.edad_hasta
-    ? `de ${brandingKit.edad_desde} a ${brandingKit.edad_hasta} años`
-    : 'de 25 a 45 años'
-
-  const mercadoKey = brandingKit?.mercado === 'Otro (especificar)'
-    ? 'Otro'
-    : brandingKit?.mercado
-
-  const aparienciaMap = {
-    'Latinoamérica (América Latina)':
-      'apariencia latinoamericana, tono de piel cálido, cercana y reconocible para audiencia latina',
-    'España':
-      'apariencia española/europea, rasgos mediterráneos, cercana y reconocible para audiencia española',
-    'Estados Unidos (español)':
-      'apariencia hispana americana, reconocible para latinos en Estados Unidos',
-    'Europa hispanohablante':
-      'apariencia hispana europea, reconocible para hispanohablantes en Europa',
-    'Global hispanohablante':
-      'apariencia neutral, universalmente reconocible para cualquier audiencia hispanohablante',
-    'Otro':
-      `apariencia reconocible para ${brandingKit?.mercado_personalizado || 'audiencia hispanohablante'}`,
-  }
-
-  const apariencia = aparienciaMap[mercadoKey] ||
-    'apariencia neutral, reconocible para audiencia hispanohablante'
-
-  return `${genero} ${edad}, ${apariencia}`
-}
-
-// ── Extrae la transformación del producto desde la Base de Conocimiento ───
-function extraerTransformacion(knowledge, project) {
-  const contenido = knowledge?.contenido || ''
-  const producto = project?.producto || 'el producto'
-  const extracto = contenido.substring(0, 600)
-
-  return `
-COMPOSICIÓN ESPECIAL ANTES/DESPUÉS:
-
-Basándote en este contexto del producto: "${extracto}"
-
-MITAD IZQUIERDA — Estado ANTES (el problema):
-- Mostrar visualmente el problema o estado negativo que tenía el cliente ANTES de usar ${producto}
-- Expresión facial de frustración, estrés o malestar
-- Colores apagados, fríos, desaturados (grises, azules fríos)
-- Ambiente desordenado o tenso según el contexto del producto
-- Etiqueta "ANTES" visible en español, tipografía gruesa en blanco, fondo oscuro semitransparente
-
-MITAD DERECHA — Estado DESPUÉS (el resultado):
-- Mostrar visualmente la transformación positiva lograda CON ${producto}
-- Expresión facial de satisfacción, alegría y confianza
-- Colores vibrantes, cálidos, saturados (dorados, verdes, violetas brillantes)
-- Ambiente ordenado, luminoso y aspiracional
-- Etiqueta "DESPUÉS" visible en español, tipografía gruesa en blanco, fondo oscuro semitransparente
-
-ELEMENTOS DE UNIÓN:
-- Línea divisoria central clara y visible entre ambas mitades
-- Las etiquetas dicen EXACTAMENTE "ANTES" y "DESPUÉS" (en español, NO en inglés)
-- Contraste visual dramático entre ambas mitades para máximo impacto emocional
-- Formato cuadrado, cada mitad ocupa exactamente el 50% del espacio`
-}
-
-// ── Escena y expresión según tipo de ángulo (en español) ─────────────────
-const ESCENA_POR_ANGULO = {
-  dolor:         'expresión de frustración intensa, manos en la cabeza, lenguaje corporal agobiado, fondo oscuro desordenado, iluminación dramática que transmite tensión',
-  curiosidad:    'expresión de sorpresa y curiosidad, inclinado hacia adelante, ojos muy abiertos, gesto de señalar algo, iluminación brillante y atractiva',
-  resultado:     'expresión de confianza y éxito, celebrando, oficina moderna con múltiples pantallas mostrando gráficos ascendentes y panel de ganancias, iluminación cálida y brillante',
-  objecion:      'expresión segura y empoderada, brazos abriéndose con confianza, contacto visual directo con la cámara, fondo profesional limpio, iluminación de autoridad',
-  miedo:         'expresión de preocupación y ansiedad, mirando nerviosamente una pantalla, iluminación oscura y dramática, tensión visible en el rostro, destello rojo de fondo',
-  transformacion:'energía de transformación dinámica, expresión empoderada y segura, contraste visual dramático mostrando el cambio, iluminación cinematográfica poderosa',
-  urgencia:      'expresión de urgencia energética, inclinado hacia adelante con determinación, elementos de acento rojo y naranja, composición de alta energía y movimiento',
-  comparacion:   'expresión pensativa y comparativa, gesticulando entre dos opciones, postura de evaluación confiada, fondo dividido con contraste, iluminación balanceada',
-  testimonio:    'expresión genuina de felicidad y satisfacción, sonrisa natural y auténtica, mirando a cámara con gratitud y confianza, ambiente cálido de estilo de vida',
-  educativo:     'expresión de conocimiento y compromiso, explicando con ambas manos, postura profesional y segura, entorno educativo con datos visibles al fondo',
-  provocacion:   'expresión atrevida y desafiante, mirada provocadora directa a cámara, ligeramente inclinado hacia adelante, fondo oscuro dramático, luces de neón cinematográficas',
-  identidad:     'expresión de orgullo e identidad fuerte, mirada poderosa y directa, postura segura y empoderada, iluminación aspiracional dramática',
-  garantia:      'expresión confiable y segura, gesto de mano abierta tranquilizador, fondo profesional limpio, iluminación que transmite solidez y confianza',
-  precio:        'expresión de sorpresa agradable y emoción, gesto de señalar una oferta, fondo brillante y enérgico, iluminación comercial vibrante',
-  exclusividad:  'expresión sofisticada y exclusiva, porte premium y elegante, entorno de lujo moderno con acentos dorados y violetas, iluminación cinematográfica de lujo',
-  social_proof:  'expresión orgullosa mostrando resultados, sonrisa auténtica satisfecha, ambiente de estilo de vida que sugiere comunidad y éxito',
-  novedad:       'expresión de emoción de primer adoptador, descubriendo algo nuevo con asombro, entorno tecnológico moderno, iluminación brillante e innovadora',
-  aspiracional:  'expresión visionaria y aspiracional, logrando el estilo de vida soñado, entorno moderno de lujo, mirada hacia adelante con confianza, iluminación dorada de hora mágica',
-  humor:         'expresión cómica exagerada y juguetona, reacción dramáticamente divertida, fondo colorido y enérgico, iluminación alegre y comercial',
-  autoridad:     'expresión de autoridad y experticia, presencia imponente y profesional, brazos cruzados o gesto de experto con mano abierta, fondo premium oscuro, iluminación de poder',
-}
-
-// ── Estilo de fondo según branding (en español) ──────────────────────────
-const ESTILO_FONDO = {
-  agresivo:    'fondo oscuro dramático con luces de neón violeta y azul eléctrico intensas, gradación cinematográfica de alta energía, efectos de humo o neblina, sombras profundas y contrastadas',
-  moderno:     'fondo degradado moderno y limpio (azul marino oscuro hacia casi negro), elementos geométricos mínimos, atmósfera profesional y elegante, destello azul sutil',
-  minimalista: 'fondo blanco o gris muy claro y limpio, diseño mínimo sin elementos distractores, enfoque total en el sujeto y tipografía, sombras suaves solamente',
-  elegante:    'fondo oscuro de lujo con acentos dorados y violeta profundo, atmósfera sofisticada y premium, luces de fondo bokeh suaves, gradación cinematográfica elegante',
-  vintage:     'fondo con tonos vintage y cálidos, textura retro y grano, acentos ámbar y sepia, sensación de película nostálgica, gradación cinematográfica cálida',
-  bold:        'fondo colorido y atrevido con colores complementarios de alta saturación, elementos gráficos dinámicos, estilo comercial de alta energía',
-  corporativo: 'fondo de entorno corporativo profesional, oficina limpia y ordenada, tonos azules y grises confiables, atmósfera formal y seria de negocios',
-  lifestyle:   'entorno de estilo de vida auténtico y cálido, casa u exterior natural, luz natural dorada, escena cotidiana y cercana',
-}
-
-// ── Composiciones rotativas ───────────────────────────────────────────────
+// ── Composiciones narrativas (sin etiquetas técnicas) ────────────────────
 const COMPOSICIONES = [
-  'Sujeto en el tercio izquierdo del encuadre, bloque de texto audaz a la derecha, jerarquía visual fuerte, degradado oscuro en el lado del texto para legibilidad',
-  'Sujeto centrado en el encuadre, titular audaz integrado en el tercio superior, subtexto en el tercio inferior, composición con regla de tercios',
-  'Composición diagonal dinámica, sujeto angulado hacia el área de texto, texto integrado naturalmente en el espacio negativo del lado opuesto',
-  'Estilo de noticiero televisivo, sujeto en encuadre de presentador, barra informativa audaz en la parte inferior con titular, composición de autoridad',
+  `La persona está ubicada en el tercio izquierdo de la imagen mirando a cámara. El texto del anuncio aparece en el lado derecho sobre fondo oscuro semitransparente.`,
+  `La persona está centrada en la imagen. El titular del anuncio aparece en la parte superior y el subtexto en la parte inferior, ambos sobre franjas oscuras semitransparentes.`,
+  `El titular ocupa el tercio superior de la imagen en tipografía muy grande y negrita. La persona aparece en la mitad inferior con expresión poderosa.`,
+  `La imagen tiene estilo de noticia urgente. Hay una franja de color sólido en la parte inferior con el texto del anuncio. La persona ocupa el fondo completo con expresión de autoridad.`,
+  `La imagen está dividida en dos mitades verticales con una línea divisoria clara. La mitad izquierda muestra el estado negativo con la palabra "ANTES" en español, colores fríos y expresión de problema. La mitad derecha muestra el resultado positivo con la palabra "DESPUÉS" en español, colores cálidos y expresión de éxito.`,
 ]
 
-export function buildImagePrompt(angle, project, brandingKit, knowledge) {
+// ── Expresión y emoción según tipo de ángulo ─────────────────────────────
+const EXPRESION_POR_TIPO = {
+  dolor:         'expresión de frustración genuina y reconocible, ceño fruncido, gesto de agotamiento o desesperación, lenguaje corporal que transmite el problema',
+  curiosidad:    'expresión de sorpresa e intriga, ceja levantada, gesto de señalar o mostrar algo interesante, ojos muy abiertos',
+  resultado:     'expresión de felicidad y orgullo genuino, sonrisa amplia y auténtica, postura de celebración o satisfacción total',
+  objecion:      'expresión segura y confiada, postura abierta y empoderada, brazos extendidos hacia el espectador con confianza',
+  miedo:         'expresión de preocupación y urgencia, mirando hacia el lado con ansiedad, lenguaje corporal tenso',
+  transformacion:'contraste emocional claro entre estado negativo en la mitad izquierda y estado positivo en la mitad derecha',
+  urgencia:      'expresión de energía y acción inmediata, postura dinámica inclinada hacia adelante, transmite necesidad de actuar ya',
+  comparacion:   'expresión de contraste y evaluación, señalando la diferencia entre dos opciones con gestos claros',
+  testimonio:    'expresión auténtica de satisfacción de cliente real, sonrisa natural y cercana, transmite confianza genuina',
+  educativo:     'expresión de conocimiento y compromiso, explicando con manos, postura de experto que enseña',
+  provocacion:   'expresión retadora y directa hacia el espectador, mirada desafiante, postura de confrontación amigable',
+  identidad:     'expresión de orgullo e identidad fuerte, mirada poderosa y directa, postura segura y empoderada',
+  garantia:      'expresión de total confianza y seguridad, gesto de mano abierta tranquilizador, transmite solidez',
+  precio:        'expresión de sorpresa positiva ante una oferta increíble, señalando el precio con entusiasmo',
+  exclusividad:  'expresión de distinción y privilegio, postura sofisticada, transmite acceso a algo especial',
+  social_proof:  'expresión orgullosa mostrando resultados, sonrisa de satisfacción, estilo de testimonio auténtico',
+  novedad:       'expresión de emoción ante algo nuevo y revelador, sorpresa positiva, postura de descubrimiento',
+  aspiracional:  'expresión soñadora y esperanzadora, mirada hacia el horizonte, transmite logro del estilo de vida deseado',
+  humor:         'expresión divertida y cercana, sonrisa natural exagerada, postura cómica pero reconocible',
+  autoridad:     'expresión de expertise y profesionalismo, postura de autoridad, transmite credibilidad máxima',
+}
+
+// ── Ambiente y escena según tipo de negocio ──────────────────────────────
+const ESCENA_POR_NEGOCIO = {
+  salon_belleza: `ambiente de salón de belleza moderno y elegante, espejos con iluminación profesional cálida, productos de cabello visibles al fondo, silla de peluquería o tocador, colores cálidos y sofisticados`,
+  curso_digital: `ambiente de home office moderno y minimalista, laptop abierta con pantalla visible al fondo, iluminación de contenido digital, estantería ordenada, sensación de productividad y éxito online`,
+  ecommerce:     `fondo limpio y moderno tipo estudio fotográfico, producto del negocio visible y destacado, iluminación de estudio profesional, colores neutros o de marca`,
+  restaurante:   `ambiente gastronómico cálido y apetitoso, iluminación de restaurante elegante, colores cálidos y estimulantes, sensación de buena comida y experiencia`,
+  fitness:       `gimnasio o espacio de entrenamiento moderno, equipos de ejercicio visibles, iluminación dinámica y energética, sensación de fuerza y movimiento`,
+  inmobiliaria:  `espacio interior moderno y aspiracional, iluminación natural abundante, diseño de interiores elegante, sensación de hogar de ensueño`,
+  agencia:       `oficina moderna y creativa, ambiente de trabajo dinámico, pantallas con diseños visibles, atmósfera profesional e innovadora`,
+  retail:        `tienda moderna y bien iluminada, productos expuestos atractivamente, ambiente de compra agradable y aspiracional`,
+  medico:        `consultorio o clínica moderna y confiable, ambiente limpio y profesional, iluminación de salud y bienestar, colores que transmiten confianza y cuidado`,
+  otro:          `fondo profesional cinematográfico que representa el sector del negocio, iluminación dramática de alta calidad, ambiente que conecta emocionalmente con el público objetivo`,
+}
+
+// ── Estilo visual y paleta según branding ────────────────────────────────
+const ESTILO_VISUAL = {
+  agresivo:    `estilo oscuro y de alto impacto con luces de neón violeta y azul eléctrico, sensación cinematográfica de alta energía, contrastes muy pronunciados`,
+  moderno:     `estilo moderno y limpio con degradados azul marino a negro, elementos geométricos sutiles, sensación profesional y contemporánea`,
+  minimalista: `estilo minimalista con fondo blanco o gris claro, diseño limpio sin elementos distractores, enfoque en el sujeto y el mensaje`,
+  elegante:    `estilo de lujo con fondos oscuros y acentos dorados, atmósfera sofisticada y premium, iluminación suave y cinematográfica`,
+  vintage:     `estilo retro con tonos cálidos ámbar y sepia, textura de grano fotográfico, atmósfera nostálgica y auténtica`,
+  bold:        `estilo atrevido con colores muy saturados y complementarios, elementos gráficos dinámicos, máxima energía visual`,
+  corporativo: `estilo corporativo serio con entorno de oficina limpia, tonos azules y grises confiables, atmósfera formal y profesional`,
+  lifestyle:   `estilo de vida auténtico con luz natural dorada, entorno cotidiano y cercano, sensación cálida y real`,
+}
+
+// ── Apariencia del sujeto según mercado ──────────────────────────────────
+function construirSujeto(brandingKit) {
+  const generoMap = { 'Mujeres': 'una mujer', 'Hombres': 'un hombre', 'Todos (mixto)': 'una persona' }
+  const genero = generoMap[brandingKit?.genero] || 'una persona'
+
+  const edad = brandingKit?.edad_desde && brandingKit?.edad_hasta
+    ? `de entre ${brandingKit.edad_desde} y ${brandingKit.edad_hasta} años`
+    : 'de entre 25 y 45 años'
+
+  const mercadoKey = brandingKit?.mercado === 'Otro (especificar)' ? 'Otro' : brandingKit?.mercado
+  const aparienciaMap = {
+    'Latinoamérica (América Latina)': 'de apariencia latinoamericana, rasgos cálidos y cercanos, reconocible para la audiencia latina',
+    'España': 'de apariencia española o europea mediterránea, reconocible para audiencia española',
+    'Estados Unidos (español)': 'de apariencia hispana americana, diversa y moderna, reconocible para latinos en Estados Unidos',
+    'Europa hispanohablante': 'de apariencia europea hispanohablante, reconocible para el mercado europeo de habla hispana',
+    'Global hispanohablante': 'de apariencia neutral y universalmente atractiva, reconocible para cualquier hispanohablante',
+    'Otro': `de apariencia reconocible para ${brandingKit?.mercado_personalizado || 'el mercado objetivo'}`,
+  }
+  return `${genero} ${edad}, ${aparienciaMap[mercadoKey] || 'de apariencia atractiva y profesional'}`
+}
+
+export function buildImagePrompt(angle, project, brandingKit, knowledge, variationIndex = 0) {
   const tipo = angle?.tipo || 'dolor'
-  const textoImagen = angle?.texto_imagen || angle?.headline || ''
-  const subtexto = angle?.titulo || angle?.copy || ''
+  const textoImagen = (angle?.texto_imagen || '').trim()
+  const subtextoImagen = (angle?.subtexto_imagen || '').trim()
+  const cta = (angle?.cta || 'MÁS INFO').toUpperCase()
 
   const producto = project?.producto || project?.nombre || 'el producto'
-  const generoLabel = brandingKit?.genero || 'Todos (mixto)'
-  const edadLabel = brandingKit?.edad_desde && brandingKit?.edad_hasta
-    ? `${brandingKit.edad_desde} a ${brandingKit.edad_hasta} años`
-    : '25 a 45 años'
-  const mercadoLabel = brandingKit?.mercado === 'Otro (especificar)'
-    ? (brandingKit?.mercado_personalizado || 'mercado personalizado')
-    : (brandingKit?.mercado || 'Latinoamérica')
-  const descripcionPublico = brandingKit?.publico_detallado || ''
-  const coloresHex = brandingKit?.colores?.length > 0
-    ? brandingKit.colores.join(', ')
-    : '#7c3aed'
+  const tipoNegocio = project?.tipo_negocio || 'otro'
+  const colores = brandingKit?.colores?.length > 0 ? brandingKit.colores.join(', ') : '#7c3aed'
   const estiloLabel = brandingKit?.estilo || 'agresivo'
   const tonoLabel = brandingKit?.tono || 'directo y urgente'
+  const extractoKnowledge = knowledge?.contenido?.substring(0, 400) || ''
 
-  const sujeto = construirDescripcionSujeto(brandingKit)
-  const escena = ESCENA_POR_ANGULO[tipo] || ESCENA_POR_ANGULO.dolor
-  const fondoEstilo = ESTILO_FONDO[estiloLabel] || ESTILO_FONDO.agresivo
+  const sujeto = construirSujeto(brandingKit)
+  const expresion = EXPRESION_POR_TIPO[tipo] || EXPRESION_POR_TIPO.dolor
+  const escena = ESCENA_POR_NEGOCIO[tipoNegocio] || ESCENA_POR_NEGOCIO.otro
+  const estiloVisual = ESTILO_VISUAL[estiloLabel] || ESTILO_VISUAL.agresivo
 
-  // Composición especial para transformacion, normal para el resto
-  const esTransformacion = tipo === 'transformacion'
-  const composicionEspecial = esTransformacion
-    ? extraerTransformacion(knowledge, project)
-    : null
+  // Para transformacion usamos siempre la composición dividida (índice 4)
+  const compIndex = tipo === 'transformacion' ? 4 : (variationIndex % (COMPOSICIONES.length - 1))
+  const composicion = COMPOSICIONES[compIndex]
 
-  const indiceComp = Math.abs((tipo.charCodeAt(0) || 0) + (textoImagen.charCodeAt(0) || 0)) % COMPOSICIONES.length
-  const composicion = COMPOSICIONES[indiceComp]
+  const contextoProducto = extractoKnowledge
+    ? `El negocio es ${project?.nombre || producto} y ofrece ${producto}. Contexto adicional: ${extractoKnowledge}`
+    : `El negocio ofrece ${producto}.`
 
-  // Elementos visuales adicionales por tipo
-  const EXTRAS_VISUALES = {
-    dolor:         'símbolos de estrés y agobio, elementos visuales que transmiten presión y sobrecarga',
-    resultado:     'panel de ganancias en pantalla, gráficos ascendentes, métricas de éxito visibles, números de ingresos',
-    urgencia:      'elementos visuales de reloj o cuenta regresiva, acentos de color rojo intenso, energía de movimiento',
-    precio:        'etiqueta de precio o insignia de descuento en porcentaje audaz, flechas de valor',
-    garantia:      'insignia de escudo o sello de verificación en esquina, elemento visual de certificación de confianza',
-    exclusividad:  'insignia VIP o elemento de corona, sensación de membresía exclusiva premium',
-    social_proof:  'superposición gráfica de calificación con estrellas, diseño estilo testimonio, elementos de éxito comunitario',
-    novedad:       'insignia o cinta de "NUEVO", efectos de brillo o destello, símbolos de innovación',
-  }
-  const extrasVisuales = EXTRAS_VISUALES[tipo] || ''
+  const prompt = `Crea una fotografía publicitaria profesional para un anuncio de Facebook e Instagram. La imagen debe verse exactamente como un anuncio real de alta conversión que aparecería en el feed de Meta Ads, no como un boceto ni una descripción.
 
-  const prompt = `INSTRUCCIÓN CRÍTICA DE IDIOMA: Este es un anuncio publicitario para audiencia hispanohablante. TODO el texto que aparezca en la imagen debe estar escrito en ESPAÑOL. Está PROHIBIDO usar inglés en cualquier parte de la imagen. Si el texto de un elemento no está en español, no lo incluyas. Esto incluye: titulares, subtítulos, etiquetas, insignias, barras de texto, botones, marcas de agua y cualquier otro texto visible.
+${contextoProducto}
 
-Crea un creativo publicitario de alta conversión para Meta Ads (Facebook e Instagram) con las siguientes especificaciones:
+La imagen muestra a ${sujeto} con ${expresion}. Esta persona está en el siguiente ambiente: ${escena}.
 
-FORMATO: Imagen cuadrada 1080x1080 píxeles, diseño gráfico audaz, estilo profesional de fotografía publicitaria ultra-realista
+${composicion}
 
-PRODUCTO: ${producto}
-GÉNERO DEL PÚBLICO: ${generoLabel}
-RANGO DE EDAD: ${edadLabel}
-MERCADO OBJETIVO: ${mercadoLabel}
-${descripcionPublico ? `DESCRIPCIÓN DEL CLIENTE IDEAL: ${descripcionPublico.substring(0, 250)}` : ''}
+Sobre la imagen aparecen estos textos publicitarios en español:
+El titular principal aparece en letras grandes, negritas y de alto contraste: "${textoImagen}"
+${subtextoImagen ? `El texto secundario aparece en letras más pequeñas pero legibles: "${subtextoImagen}"` : ''}
+Un botón de llamada a la acción dice: "${cta}"
 
-TEXTOS OBLIGATORIOS EN LA IMAGEN — TODO EN ESPAÑOL:
-- TITULAR PRINCIPAL (tipografía grande y audaz, color blanco o amarillo brillante, sombra oscura gruesa para máximo contraste): "${textoImagen}"
-- SUBTEXTO DE APOYO (tipografía más pequeña, blanco, legible, sombra sutil): "${subtexto}"
-- Todos los textos deben ser de alto contraste, claramente legibles e integrados profesionalmente en el diseño
-- El 35% inferior de la imagen debe ser naturalmente más oscuro para garantizar legibilidad del texto
+Los colores de acento de la marca son ${colores}. Úsalos en el botón de llamada a la acción, en bordes decorativos o en elementos gráficos de la imagen.
 
-SUJETO PRINCIPAL: ${sujeto}
-EXPRESIÓN Y LENGUAJE CORPORAL: ${escena}
+El estilo general de la imagen es ${estiloVisual} con tono ${tonoLabel}.
 
-${esTransformacion ? composicionEspecial : `COMPOSICIÓN:
-- ${composicion}
-- Jerarquía visual fuerte: titular → sujeto → subtexto → insignia
-- Composición optimizada para detener el scroll en redes sociales`}
+La imagen final debe verse como una fotografía publicitaria profesional de alta calidad para redes sociales, con iluminación cinematográfica dramática, colores vibrantes y saturados, y una composición que detiene el scroll. Sin marcas de agua. Sin texto en inglés. Sin texto técnico ni descriptivo visible. Sin etiquetas de formato ni especificaciones. Únicamente la imagen publicitaria terminada con los textos en español indicados arriba.`
 
-ELEMENTOS DE DISEÑO VISUAL:
-- Colores de acento de marca: ${coloresHex} — usar en insignias, bordes y elementos gráficos
-- Metáforas visuales relacionadas con: ${producto}
-- Elementos gráficos audaces: flechas, marcos de acento, bordes gráficos
-${extrasVisuales ? `- ${extrasVisuales}` : ''}
-- Insignia de credibilidad pequeña en esquina (con texto en español: "NUEVO", "PROBADO", símbolo de verificación o estrellas)
-- Luces de acento de color sutil que coincidan con el ambiente de la escena
-
-FONDO Y ESCENA:
-- ${fondoEstilo}
-- Debe transmitir alta energía y detener el scroll en el feed de redes sociales
-
-ESTILO DE COMUNICACIÓN: ${tonoLabel}
-ESTILO VISUAL: ${estiloLabel}
-
-ILUMINACIÓN: Iluminación cinematográfica dramática, luz de contorno fuerte sobre el sujeto, luces de acento de color que combinen con la paleta de marca, ambiente oscuro y misterioso donde corresponda al estilo
-
-CALIDAD:
-- Estilo fotográfico ultra-realista, equivalente a resolución 8K
-- Enfoque nítido en el rostro y parte superior del cuerpo del sujeto
-- Colores vivos y saturados, alto contraste
-- Sin marcas de agua, sin elementos borrosos, sin aspecto de foto de banco de imágenes genérica
-- Sin artefactos de texto fuera de las áreas designadas
-- Calidad de campaña publicitaria profesional de Meta Ads
-
-REFERENCIA DE ESTILO: Creativos de Meta Ads de alto rendimiento de campañas de marketing digital de ${mercadoLabel} con máxima conversión — audaces, directos, de alta energía, emocionalmente poderosos y optimizados para conversión.
-
-VERIFICACIÓN FINAL DE IDIOMA: Antes de generar la imagen, confirma que absolutamente todo el texto visible estará en español. Ninguna palabra en inglés debe aparecer en la imagen final. Si algún elemento visual requiere texto, ese texto debe estar en español.`
-
-  console.log('[buildImagePrompt] tipo:', tipo, '| estilo:', estiloLabel, '| mercado:', mercadoLabel)
-  console.log('[buildImagePrompt] sujeto:', sujeto)
-  console.log('[buildImagePrompt] PROMPT FINAL:\n', prompt)
+  console.log('[buildImagePrompt] tipo:', tipo, '| negocio:', tipoNegocio, '| estilo:', estiloLabel, '| comp:', compIndex)
+  console.log('[buildImagePrompt] titular:', textoImagen)
+  console.log('[buildImagePrompt] PROMPT:\n', prompt)
 
   return prompt
 }
