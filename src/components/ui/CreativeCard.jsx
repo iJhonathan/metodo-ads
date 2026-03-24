@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import {
   CheckCircle2, XCircle, Download, Loader2,
-  AlertCircle, RefreshCw, Copy, Check
+  AlertCircle, RefreshCw, Copy, Check, Sparkles, Wand2
 } from 'lucide-react'
 import { ANGLE_TYPES } from '../../lib/claude'
 
-function CopyField({ label, value, accent }) {
+function CopyField({ label, value }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -17,14 +17,15 @@ function CopyField({ label, value, accent }) {
   if (!value) return null
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-xl">
-      <span className="text-text-muted text-xs font-semibold uppercase tracking-wider flex-shrink-0 w-10">{label}</span>
-      <p className={`text-sm font-medium leading-snug flex-1 truncate ${accent ? 'text-accent-light font-bold tracking-wide' : 'text-text-primary'}`}>
+    <div className="flex items-start gap-2 px-3 py-2 bg-background border border-border rounded-xl">
+      <span className="text-text-muted text-xs font-semibold uppercase tracking-wider flex-shrink-0 w-12 pt-0.5">{label}</span>
+      <p className="text-sm text-text-primary leading-snug flex-1 min-w-0 break-words">
         {value}
       </p>
       <button
         onClick={handleCopy}
-        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all flex-shrink-0
+        title="Copiar"
+        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all flex-shrink-0 mt-0.5
           ${copied
             ? 'bg-status-success/20 text-status-success'
             : 'text-text-muted hover:text-text-primary hover:bg-surface-3'
@@ -65,30 +66,26 @@ const ANGLE_BADGE_COLOR = {
   identidad:     'bg-purple-700/15 border-purple-700/30 text-purple-300',
 }
 
-export default function CreativeCard({
-  creative,
-  onApprove,
-  onDiscard,
-  onRetry,
-}) {
+export default function CreativeCard({ creative, onApprove, onDiscard, onRetry }) {
   const estadoConf = ESTADO_CONFIG[creative.estado] || ESTADO_CONFIG.pendiente
-  const titulo = creative.angle?.titulo || ''
-  const cta = creative.angle?.cta || ''
-  const tipo = creative.angle?.tipo || ''
+
+  // Nuevo modelo de datos: angleType + textos
+  const tipo      = creative.angleType || ''
   const tipoLabel = ANGLE_TYPES.find(a => a.key === tipo)?.label || tipo
+  const textos    = creative.textos || {}
   const angleBadgeColor = ANGLE_BADGE_COLOR[tipo] || 'bg-surface-3 border-border text-text-muted'
 
   const handleDownload = () => {
     if (!creative.imageUrl) return
     const a = document.createElement('a')
     a.href = creative.imageUrl
-    a.download = `metodo-ads-${creative.angle?.tipo || 'creativo'}-${Date.now()}.jpg`
+    a.download = `metodo-ads-${tipo || 'creativo'}-${Date.now()}.jpg`
     a.click()
   }
 
   return (
     <div className={`rounded-2xl border overflow-hidden flex flex-col transition-all duration-200
-      ${creative.estado === 'aprobado' ? 'border-status-success/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]' :
+      ${creative.estado === 'aprobado'   ? 'border-status-success/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]' :
         creative.estado === 'descartado' ? 'border-status-error/30 opacity-50' :
         'border-border hover:border-border-hover shadow-card hover:shadow-card-hover'
       }`}
@@ -102,21 +99,19 @@ export default function CreativeCard({
         </div>
       )}
 
-      {/* COPY — arriba de la imagen (copy de Facebook, más largo) */}
-      {titulo && (
-        <div className="p-3 pb-0">
-          <CopyField label="Copy" value={titulo} />
-        </div>
-      )}
-
-      {/* IMAGEN — centro (ya viene compositada con texto_imagen + CTA pill) */}
+      {/* IMAGEN — limpia, sin overlays */}
       <div className="relative aspect-square bg-surface-3 overflow-hidden m-3 rounded-xl">
         {creative.generating ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center animate-pulse-slow">
-              <Loader2 size={22} className="text-white animate-spin" />
+              {creative.generatingPhase === 'claude'
+                ? <Sparkles size={22} className="text-white animate-pulse" />
+                : <Wand2 size={22} className="text-white animate-spin" />
+              }
             </div>
-            <p className="text-text-secondary text-xs text-center px-4">Generando imagen...</p>
+            <p className="text-text-secondary text-xs text-center px-4">
+              {creative.generatingPhase === 'claude' ? 'Generando copy con Claude...' : 'Generando imagen con Gemini...'}
+            </p>
           </div>
         ) : creative.error ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 bg-surface-3">
@@ -134,10 +129,9 @@ export default function CreativeCard({
           <>
             <img
               src={creative.imageUrl}
-              alt={creative.angle?.texto_imagen || 'Creativo'}
+              alt={textos.titularImagen || 'Creativo'}
               className="w-full h-full object-cover"
             />
-            {/* Estado badge */}
             {creative.estado !== 'pendiente' && (
               <div className="absolute top-2 right-2">
                 <span className={`badge border text-xs font-semibold ${estadoConf.color}`}>
@@ -153,14 +147,15 @@ export default function CreativeCard({
         )}
       </div>
 
-      {/* CTA — debajo de la imagen */}
-      {cta && (
-        <div className="px-3">
-          <CopyField label="CTA" value={cta} accent />
+      {/* COPY DE META ADS — debajo de la imagen */}
+      {(textos.metaTextoPrincipal || textos.metaTitulo) && (
+        <div className="px-3 pb-1 space-y-1.5">
+          <CopyField label="Copy" value={textos.metaTextoPrincipal} />
+          <CopyField label="Título" value={textos.metaTitulo} />
         </div>
       )}
 
-      {/* Actions */}
+      {/* ACCIONES */}
       {creative.estado === 'pendiente' && !creative.generating && !creative.error && creative.imageUrl && (
         <div className="flex items-center gap-2 px-3 pb-3 pt-2">
           <button

@@ -50,27 +50,77 @@ export function extractJSON(text) {
 // ──────────────────────────────────────────────────────────
 
 export const ANGLE_TYPES = [
-  { key: 'dolor',          label: 'Dolor' },
-  { key: 'curiosidad',     label: 'Curiosidad' },
-  { key: 'objecion',       label: 'Objeción' },
-  { key: 'miedo',          label: 'Miedo' },
-  { key: 'resultado',      label: 'Resultado' },
-  { key: 'comparacion',    label: 'Comparación' },
-  { key: 'urgencia',       label: 'Urgencia' },
-  { key: 'testimonio',     label: 'Testimonio' },
-  { key: 'educativo',      label: 'Educativo' },
-  { key: 'provocacion',    label: 'Provocación' },
-  { key: 'identidad',      label: 'Identidad' },
-  { key: 'transformacion', label: 'Transformación' },
-  { key: 'garantia',       label: 'Garantía' },
-  { key: 'precio',         label: 'Precio' },
-  { key: 'exclusividad',   label: 'Exclusividad' },
-  { key: 'social_proof',   label: 'Prueba Social' },
-  { key: 'novedad',        label: 'Novedad' },
-  { key: 'aspiracional',   label: 'Aspiracional' },
-  { key: 'humor',          label: 'Humor' },
-  { key: 'autoridad',      label: 'Autoridad' },
+  { key: 'dolor',          label: 'Dolor',          descripcion: 'Identificar y amplificar el problema principal del cliente. Hacer que se sienta completamente identificado con su frustración actual.' },
+  { key: 'curiosidad',     label: 'Curiosidad',     descripcion: 'Generar intriga con algo sorprendente o contraintuitivo que el cliente quiere descubrir urgentemente.' },
+  { key: 'objecion',       label: 'Objeción',       descripcion: 'Anticipar y destruir la principal objeción que impide al cliente comprar. Responder directamente a su mayor duda.' },
+  { key: 'miedo',          label: 'Miedo',          descripcion: 'Activar el miedo a perder algo valioso, a quedarse atrás, o a que el problema empeore si no actúa ahora.' },
+  { key: 'resultado',      label: 'Resultado',      descripcion: 'Mostrar el resultado transformador concreto y específico que el cliente obtendrá. Enfocarse en el antes vs después.' },
+  { key: 'comparacion',    label: 'Comparación',    descripcion: 'Comparar el producto con la alternativa inferior para resaltar su superioridad de forma clara e irrefutable.' },
+  { key: 'urgencia',       label: 'Urgencia',       descripcion: 'Crear urgencia real o percibida para que el cliente actúe ahora mismo y no postergue la decisión.' },
+  { key: 'testimonio',     label: 'Testimonio',     descripcion: 'Usar la voz de un cliente real satisfecho para generar prueba social y confianza a través de su experiencia genuina.' },
+  { key: 'educativo',      label: 'Educativo',      descripcion: 'Enseñar algo valioso relacionado al problema que posiciona al negocio como experto y genera confianza inmediata.' },
+  { key: 'provocacion',    label: 'Provocación',    descripcion: 'Desafiar una creencia común o decir algo polémico que obligue al cliente a detenerse y leer.' },
+  { key: 'identidad',      label: 'Identidad',      descripcion: 'Apelar a la identidad del cliente ideal. Hablarle como parte de un grupo exclusivo que merece lo mejor.' },
+  { key: 'transformacion', label: 'Transformación', descripcion: 'Mostrar la transformación completa de vida. El contraste dramático entre la vida actual y la vida con el producto.' },
+  { key: 'garantia',       label: 'Garantía',       descripcion: 'Eliminar el riesgo de compra con una garantía fuerte que hace que la decisión sea obvia y segura.' },
+  { key: 'precio',         label: 'Precio',         descripcion: 'Hacer que el precio parezca una inversión obvia comparado con el valor obtenido, o destacar una oferta irresistible.' },
+  { key: 'exclusividad',   label: 'Exclusividad',   descripcion: 'Posicionar el producto como algo exclusivo, premium o de acceso limitado que no todos pueden tener.' },
+  { key: 'social_proof',   label: 'Prueba Social',  descripcion: 'Mostrar cuántas personas ya lo usan con éxito para generar el efecto manada y reducir la percepción de riesgo.' },
+  { key: 'novedad',        label: 'Novedad',        descripcion: 'Presentar algo nuevo o revolucionario que genera curiosidad y la sensación de ser el primero en descubrirlo.' },
+  { key: 'aspiracional',   label: 'Aspiracional',   descripcion: 'Conectar el producto con el estilo de vida soñado del cliente. Vender la versión mejorada de sí mismo que quiere ser.' },
+  { key: 'humor',          label: 'Humor',          descripcion: 'Usar humor cercano y reconocible para generar conexión emocional y hacer el mensaje memorable y compartible.' },
+  { key: 'autoridad',      label: 'Autoridad',      descripcion: 'Posicionar al negocio como la máxima autoridad en el tema con credenciales, años de experiencia o resultados demostrables.' },
 ]
+
+// ──────────────────────────────────────────────────────────
+// Generador de textos por creativo individual (nuevo flujo)
+// Claude genera texto → Gemini genera imagen
+// ──────────────────────────────────────────────────────────
+
+export async function generateCreativeText({ apiKey, angle, project, branding, knowledge }) {
+  const knowledgeSnippet = knowledge?.contenido?.substring(0, 400) || ''
+
+  const prompt = `Eres un experto en copywriting y publicidad en Meta Ads en español con 10 años de experiencia creando anuncios de alta conversión para negocios hispanohablantes.
+
+DATOS DEL NEGOCIO:
+- Nombre: ${project.nombre}
+- Producto/Servicio: ${project.producto || 'No especificado'}
+- Tipo de negocio: ${project.tipo_negocio || 'No especificado'}
+- Público objetivo: ${branding?.genero || ''}, ${branding?.edad_desde || ''} a ${branding?.edad_hasta || ''} años
+- Mercado: ${branding?.mercado || 'No especificado'}
+- Descripción del cliente ideal: ${branding?.publico_detallado || 'No especificado'}
+- Tono de comunicación: ${branding?.tono || 'directo y urgente'}${knowledgeSnippet ? `\n- Información del producto: ${knowledgeSnippet}` : ''}
+
+ÁNGULO DE MARKETING A USAR:
+- Tipo: ${angle.label}
+- Estrategia: ${angle.descripcion}
+
+TAREA:
+Genera el contenido de texto completo para un anuncio publicitario usando ÚNICAMENTE el ángulo indicado arriba.
+
+Responde SOLO con JSON puro, sin markdown, sin explicaciones, sin bloques de código, solo el objeto JSON:
+
+{
+  "titularImagen": "titular principal para mostrar EN la imagen, máximo 8 palabras, impactante, sin errores ortográficos, en español perfecto",
+  "subtextoImagen": "subtexto de apoyo para mostrar EN la imagen, máximo 12 palabras, complementa el titular, en español perfecto",
+  "ctaImagen": "texto del botón de llamada a la acción EN la imagen, máximo 3 palabras, en español perfecto",
+  "metaTextoPrincipal": "texto principal para publicar en Meta Ads al momento de subir el anuncio, entre 80 y 150 caracteres, conversacional, puede incluir emojis relevantes, que genere curiosidad o urgencia, que complemente la imagen sin repetir exactamente lo mismo, en español perfecto",
+  "metaTitulo": "título para Meta Ads al momento de publicar, máximo 40 caracteres, directo, que invite al clic, en español perfecto"
+}`
+
+  const rawText = await callClaude({ apiKey, prompt, maxTokens: 1024 })
+
+  // Limpiar y parsear JSON
+  let cleaned = rawText.trim().replace(/```json|```/g, '').trim()
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    const match = cleaned.match(/\{[\s\S]*\}/)
+    if (match) return JSON.parse(match[0])
+    console.error('[claude] generateCreativeText — respuesta inválida:', rawText)
+    throw new Error('Claude devolvió un formato inválido. Verifica tu API Key de Claude.')
+  }
+}
 
 // ──────────────────────────────────────────────────────────
 // Prompt: Generador integrado de creativos para Meta Ads

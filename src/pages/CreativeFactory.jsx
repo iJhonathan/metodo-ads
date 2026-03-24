@@ -5,7 +5,7 @@ import {
   AlertTriangle, Settings, Zap, RefreshCw, SlidersHorizontal, ArrowRight
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { callClaude, extractJSON, buildCreativesPrompt, ANGLE_TYPES } from '../lib/claude'
+import { generateCreativeText, ANGLE_TYPES } from '../lib/claude'
 import { generateImage, listAvailableModels, activeModel } from '../lib/gemini'
 import { buildImagePrompt } from '../utils/buildImagePrompt'
 import { useAuth } from '../contexts/AuthContext'
@@ -60,34 +60,20 @@ function GenerationProgress({ phase, current, total, label }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-accent flex items-center justify-center">
-            {phase === 1
-              ? <Sparkles size={14} className="text-white animate-pulse" />
-              : <Wand2 size={14} className="text-white animate-spin" style={{ animationDuration: '2s' }} />
-            }
+            <Wand2 size={14} className="text-white animate-spin" style={{ animationDuration: '2s' }} />
           </div>
           <div>
             <p className="text-text-primary text-sm font-semibold leading-none">
-              {phase === 1 ? 'Fase 1 — Generando textos y ángulos con Claude AI...' : `Fase 2 — Generando imágenes (${current}/${total})`}
+              Generando creativos ({current}/{total})
             </p>
             {label && <p className="text-text-muted text-xs mt-0.5 truncate max-w-md">{label}</p>}
           </div>
         </div>
         {phase === 2 && <span className="text-accent-light font-bold text-sm">{pct}%</span>}
       </div>
-      {phase === 2 && (
-        <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-accent rounded-full transition-all duration-500 shadow-glow-sm" style={{ width: `${pct}%` }} />
-        </div>
-      )}
-      {phase === 1 && (
-        <div className="flex gap-1 mt-1">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex-1 h-1.5 rounded-full bg-accent/20 overflow-hidden">
-              <div className="h-full bg-accent rounded-full animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-accent rounded-full transition-all duration-500 shadow-glow-sm" style={{ width: `${pct}%` }} />
+      </div>
     </div>
   )
 }
@@ -188,84 +174,77 @@ export default function CreativeFactory() {
     setCreatives([])
     setTab('factory')
 
-    // ── DIAGNÓSTICO BUG 1 ──
-    const angelosSeleccionados = [...selectedAngles]
-    console.log('=== ÁNGULOS SELECCIONADOS POR USUARIO ===')
-    console.log(angelosSeleccionados)
-    console.log('Total seleccionados:', angelosSeleccionados.length)
+    // Distribuir ángulos seleccionados en N slots
+    const selectedList = [...selectedAngles]
+    const angleObjects = selectedList.map(key => ANGLE_TYPES.find(a => a.key === key)).filter(Boolean)
+    const distribution = Array.from({ length: quantity }, (_, i) => angleObjects[i % angleObjects.length])
+    const total = distribution.length
 
-    // ── FASE 1: Claude genera los ángulos + textos ──
-    setPhase(1)
-    let angles = []
-    try {
-      const { system, prompt } = buildCreativesPrompt({
-        project, knowledge, branding,
-        quantity,
-        angleTypes: angelosSeleccionados,
-      })
-      const rawText = await callClaude({ apiKey: claudeKey, system, prompt, maxTokens: 16000 })
-      const parsed = extractJSON(rawText)
-      angles = parsed.creativos || parsed.angulos || parsed
-      if (!Array.isArray(angles) || angles.length === 0) throw new Error('Claude no devolvió creativos válidos.')
-
-      // ── DIAGNÓSTICO BUG 1 — distribución real devuelta por Claude ──
-      console.log('=== DISTRIBUCIÓN FINAL ===')
-      angles.forEach((item, i) => {
-        console.log(`Creativo ${i + 1}: ángulo = ${item.tipo}`)
-      })
-      const tiposUnicos = [...new Set(angles.map(a => a.tipo))]
-      console.log('Tipos únicos generados por Claude:', tiposUnicos)
-      console.log('Tipos que NO estaban en la selección del usuario:', tiposUnicos.filter(t => !angelosSeleccionados.includes(t)))
-    } catch (err) {
-      if (!abortRef.current) setError(err.message || 'Error generando textos con Claude.')
-      setPhase(0)
-      return
-    }
-
-    if (abortRef.current) { setPhase(0); return }
-
-    // ── FASE 2: Imagen 4 genera + composita cada creativo ──
-    setPhase(2)
-    const total = angles.length
-
-    const initial = angles.map((angle, i) => ({
+    // Inicializar todos los slots como "pendiente"
+    setCreatives(distribution.map((angleType, i) => ({
       _key: `c_${i}`,
-      angle,
+      angleType: angleType.key,
+      angleName: angleType.label,
+      textos: null,
       imageUrl: null,
       estado: 'pendiente',
       generating: true,
+      generatingPhase: 'claude',
       error: null,
-    }))
-    setCreatives(initial)
+    })))
+    setPhase(2)
 
-    for (let i = 0; i < angles.length; i++) {
+    for (let i = 0; i < distribution.length; i++) {
       if (abortRef.current) break
-      const angle = angles[i]
+      const angleType = distribution[i]
       const key = `c_${i}`
 
-      setProgress({
-        current: i + 1,
-        total,
-        label: `"${angle.texto_imagen || ''}" — ${angle.tipo}`,
-      })
+      // ── PASO 1: Claude genera los textos ──
+      setProgress({ current: i + 1, total, label: `[Claude] Generando copy para "${angleType.label}"...` })
+
+      let textos
+      try {
+        textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge })
+        console.log(`[CreativeFactory] Creativo ${i + 1} — textos de Claude:`, textos)
+      } catch (err) {
+        // Reintentar una vez
+        try {
+          textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge })
+          console.log(`[CreativeFactory] Creativo ${i + 1} — retry OK:`, textos)
+        } catch (retryErr) {
+          setCreatives(prev => prev.map(c =>
+            c._key === key ? { ...c, generating: false, generatingPhase: null, error: `Error al generar el copy. Verifica tu API Key de Claude.` } : c
+          ))
+          continue
+        }
+      }
+
+      if (abortRef.current) break
+
+      // Actualizar estado con textos y cambiar fase a Gemini
+      setCreatives(prev => prev.map(c =>
+        c._key === key ? { ...c, textos, generatingPhase: 'gemini' } : c
+      ))
+
+      // ── PASO 2: Gemini genera la imagen ──
+      setProgress({ current: i + 1, total, label: `[Gemini] Generando imagen... "${textos.titularImagen}"` })
 
       try {
-        // Generar imagen (Gemini ya incluye el texto en la imagen)
-        const imgPrompt = buildImagePrompt(angle, project, branding, knowledge, i)
+        const imgPrompt = buildImagePrompt({ textos, angleKey: angleType.key, project, branding, variationIndex: i })
         const imageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
         setCurrentModel(activeModel)
 
         setCreatives(prev => prev.map(c =>
-          c._key === key ? { ...c, imageUrl, generating: false } : c
+          c._key === key ? { ...c, imageUrl, generating: false, generatingPhase: null } : c
         ))
       } catch (err) {
         setCreatives(prev => prev.map(c =>
-          c._key === key ? { ...c, generating: false, error: err.message } : c
+          c._key === key ? { ...c, generating: false, generatingPhase: null, error: err.message } : c
         ))
       }
 
-      if (i < angles.length - 1 && !abortRef.current) {
-        await new Promise(r => setTimeout(r, 600))
+      if (i < distribution.length - 1 && !abortRef.current) {
+        await new Promise(r => setTimeout(r, 300))
       }
     }
 
@@ -303,20 +282,35 @@ export default function CreativeFactory() {
   }
 
   const handleRetry = async (creative) => {
-    const apiKey = profile?.api_key_google
-    if (!apiKey) return
+    const claudeKey = profile?.api_key_claude
+    const googleKey = profile?.api_key_google
+    if (!googleKey) return
+
+    const angleType = ANGLE_TYPES.find(a => a.key === creative.angleType) || ANGLE_TYPES[0]
+    const variationIndex = parseInt(creative._key.replace('c_', ''), 10) || 0
+
     setCreatives(prev => prev.map(c =>
-      c._key === creative._key ? { ...c, generating: true, error: null } : c
+      c._key === creative._key ? { ...c, generating: true, error: null, generatingPhase: creative.textos ? 'gemini' : 'claude' } : c
     ))
+
     try {
-      const imgPrompt = buildImagePrompt(creative.angle, project, branding, knowledge)
-      const imageUrl = await generateImage({ apiKey, prompt: imgPrompt })
+      // Si no tiene textos, regenerar desde Claude
+      let textos = creative.textos
+      if (!textos && claudeKey) {
+        textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge })
+        setCreatives(prev => prev.map(c =>
+          c._key === creative._key ? { ...c, textos, generatingPhase: 'gemini' } : c
+        ))
+      }
+
+      const imgPrompt = buildImagePrompt({ textos, angleKey: angleType.key, project, branding, variationIndex })
+      const imageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
       setCreatives(prev => prev.map(c =>
-        c._key === creative._key ? { ...c, imageUrl, generating: false } : c
+        c._key === creative._key ? { ...c, imageUrl, generating: false, generatingPhase: null } : c
       ))
     } catch (err) {
       setCreatives(prev => prev.map(c =>
-        c._key === creative._key ? { ...c, generating: false, error: err.message } : c
+        c._key === creative._key ? { ...c, generating: false, generatingPhase: null, error: err.message } : c
       ))
     }
   }
@@ -327,7 +321,7 @@ export default function CreativeFactory() {
       setTimeout(() => {
         const a = document.createElement('a')
         a.href = c.imageUrl
-        a.download = `metodo-ads-${c.angle?.tipo || 'creativo'}-${i + 1}.jpg`
+        a.download = `metodo-ads-${c.angleType || 'creativo'}-${i + 1}.jpg`
         a.click()
       }, i * 250)
     })
