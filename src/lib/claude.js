@@ -121,20 +121,27 @@ PARTE 1 — COPY:
 Genera los textos del anuncio en español perfecto, sin errores ortográficos. ${tono.match(/informal|cercano|humor/i) ? 'Puedes usar emojis si refuerzan el mensaje.' : 'NO uses emojis — el tono es profesional.'}
 
 PARTE 2 — PROMPT CREATIVO PARA GEMINI:
-Escribe un prompt detallado y creativo en español para que Gemini genere la imagen publicitaria.
-El prompt debe:
-- Describir una escena fotográfica específica y única para esta variación (no genérica)
-- Indicar exactamente dónde y cómo colocar el texto en la imagen (ubicación, tamaño, color, estilo tipográfico)
-- Describir la iluminación, ambiente y composición
-- Ser visualmente diferente a las otras variaciones
-- Sonar como instrucciones de un director creativo a un fotógrafo y diseñador
-- Incluir el texto exacto que debe aparecer (copiado de los campos titularImagen, subtextoImagen y ctaImagen)
+Para el campo promptGemini, escribe el prompt como si fueras el mejor director creativo publicitario de Latinoamérica con 20 años de experiencia creando campañas para Meta Ads.
 
-Para la variación ${variationIndex + 1}, usar este estilo de composición como inspiración:
-${getEstiloInspiracion(variationIndex)}
+Tienes libertad creativa absoluta para decidir:
+- El tipo de composición y layout
+- La combinación de tipografías
+- Los elementos gráficos decorativos
+- El ambiente y la fotografía
+- Los colores y texturas
+- La jerarquía visual
 
-Al final del promptGemini incluye siempre:
-"Fotografía publicitaria profesional para Meta Ads, ultra-realista, alta calidad, sin marcas de agua. El texto debe estar escrito exactamente como se indica, sin cambiar ninguna letra, perfectamente legible y con diseño integrado profesionalmente en la imagen. Todo el texto visible en español."
+Lo único que debes respetar:
+1. Que sea un diseño gráfico publicitario profesional — no solo una fotografía con texto encima
+2. Que incluya estos textos exactos sin cambiar ni una letra: los mismos valores que generaste para titularImagen, subtextoImagen y ctaImagen en la PARTE 1
+3. Que sea para este negocio específico: ${project.nombre} que ofrece ${project.producto || project.nombre}
+4. Que conecte emocionalmente con: ${branding?.publico_detallado || `${branding?.genero || ''} de ${branding?.edad_desde || ''} a ${branding?.edad_hasta || ''} años`}
+5. Que use el ángulo de marketing: ${angle.label}
+6. Que sea genuinamente diferente y creativo — esta es la variación ${variationIndex + 1} de una serie
+7. Que todo el texto visible sea en español perfecto
+8. Formato 1080x1350px vertical, calidad profesional
+
+Escribe el promptGemini como lo haría un director creativo dando instrucciones precisas a su equipo de diseño — con visión, criterio estético y conocimiento publicitario. No uses plantillas. Cada prompt debe ser único.
 
 Responde SOLO con JSON puro, sin markdown, sin bloques de código, solo el objeto JSON:
 
