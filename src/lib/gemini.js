@@ -7,8 +7,8 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 // Modelos en orden de prioridad
 const MODELS = [
-  'gemini-2.5-flash-preview-image-generation', // Principal — 2000 RPD, 500 RPM
-  'gemini-3.1-flash-image-generation',          // Fallback  — 1000 RPD, 100 RPM
+  'gemini-2.5-flash-preview-image-generation', // Principal
+  'gemini-2.0-flash-preview-image-generation', // Fallback estable
 ]
 
 /**
