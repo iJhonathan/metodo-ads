@@ -1,39 +1,84 @@
 /**
- * Google AI Studio — Imagen 3
- * Llamada directa desde el browser con la key del usuario.
+ * Google AI Studio — Gemini imagen generation
+ * Usa generateContent endpoint (distinto al predict endpoint de Imagen 4).
  */
 
-const IMAGEN_API = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict'
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+
+// Modelos en orden de prioridad
+const MODELS = [
+  'gemini-2.5-flash-preview-image-generation', // Principal — 2000 RPD, 500 RPM
+  'gemini-3.1-flash-image-generation',          // Fallback  — 1000 RPD, 100 RPM
+]
 
 /**
- * Genera una imagen y la devuelve como data URL (base64).
+ * Intenta generar una imagen con un modelo específico usando generateContent.
+ * Retorna { dataUrl, model } o lanza error.
  */
-export async function generateImage({ apiKey, prompt }) {
-  const res = await fetch(`${IMAGEN_API}?key=${apiKey}`, {
+async function tryGenerateWithModel({ apiKey, prompt, model }) {
+  const url = `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`
+
+  console.log(`[gemini] Intentando con modelo: ${model}`)
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: 1,
-        aspectRatio: '1:1',
-        safetyFilterLevel: 'block_few',
-        personGeneration: 'allow_adult',
-      },
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
     }),
   })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    const msg = err?.error?.message || `HTTP ${res.status}`
-    throw new Error(msg)
+    const status = res.status
+    const msg = err?.error?.message || `HTTP ${status}`
+    const error = new Error(msg)
+    error.status = status
+    throw error
   }
 
   const data = await res.json()
-  const b64 = data.predictions?.[0]?.bytesBase64Encoded
-  if (!b64) throw new Error('Imagen no generada. Verifica tu API Key de Google AI Studio.')
+  const parts = data.candidates?.[0]?.content?.parts || []
+  const imagePart = parts.find(p => p.inlineData?.data)
 
-  return `data:image/png;base64,${b64}`
+  if (!imagePart) {
+    throw new Error('El modelo no devolvió una imagen. Verifica tu API Key de Google AI Studio.')
+  }
+
+  const b64 = imagePart.inlineData.data
+  const mimeType = imagePart.inlineData.mimeType || 'image/png'
+
+  console.log(`[gemini] Imagen generada con ${model} (${mimeType})`)
+  return `data:${mimeType};base64,${b64}`
+}
+
+/**
+ * Genera una imagen con fallback automático entre modelos.
+ * Si todos fallan con 429 o error de modelo, lanza error claro al usuario.
+ */
+export async function generateImage({ apiKey, prompt }) {
+  let lastError = null
+
+  for (const model of MODELS) {
+    try {
+      return await tryGenerateWithModel({ apiKey, prompt, model })
+    } catch (err) {
+      console.warn(`[gemini] Falló ${model}: ${err.message} (status: ${err.status})`)
+      lastError = err
+
+      // Solo hacer fallback en rate limit (429) o modelo no encontrado (404/400)
+      const shouldFallback = err.status === 429 || err.status === 404 || err.status === 400
+      if (!shouldFallback) throw err
+      // Si hay más modelos en la lista, continúa al siguiente
+    }
+  }
+
+  // Todos los modelos fallaron
+  if (lastError?.status === 429) {
+    throw new Error('Límite de generaciones alcanzado. Intenta en unos minutos.')
+  }
+  throw new Error(lastError?.message || 'Error al generar imagen con Google AI Studio.')
 }
 
 /**
