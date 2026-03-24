@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import { generateCreativeText, ANGLE_TYPES } from '../lib/claude'
 import { generateImage, listAvailableModels, activeModel } from '../lib/gemini'
 import { buildImagePrompt } from '../utils/buildImagePrompt'
+import { renderCreativoFinal } from '../utils/renderCreativo'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectSelector from '../components/ui/ProjectSelector'
 import CreativeCard from '../components/ui/CreativeCard'
@@ -226,13 +227,17 @@ export default function CreativeFactory() {
         c._key === key ? { ...c, textos, generatingPhase: 'gemini' } : c
       ))
 
-      // ── PASO 2: Gemini genera la imagen ──
-      setProgress({ current: i + 1, total, label: `[Gemini] Generando imagen... "${textos.titularImagen}"` })
+      // ── PASO 2: Gemini genera la fotografía (sin texto) ──
+      setProgress({ current: i + 1, total, label: `[Gemini] Generando fotografía de fondo...` })
 
       try {
-        const imgPrompt = buildImagePrompt({ textos, angleKey: angleType.key, project, branding, variationIndex: i })
-        const imageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
+        const imgPrompt = buildImagePrompt({ angleKey: angleType.key, project, branding, variationIndex: i })
+        const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
         setCurrentModel(activeModel)
+
+        // ── PASO 3: Canvas API superpone el texto perfectamente ──
+        setProgress({ current: i + 1, total, label: `[Canvas] Aplicando texto...` })
+        const imageUrl = await renderCreativoFinal(rawImageUrl, textos, branding, i)
 
         setCreatives(prev => prev.map(c =>
           c._key === key ? { ...c, imageUrl, generating: false, generatingPhase: null } : c
@@ -303,8 +308,9 @@ export default function CreativeFactory() {
         ))
       }
 
-      const imgPrompt = buildImagePrompt({ textos, angleKey: angleType.key, project, branding, variationIndex })
-      const imageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
+      const imgPrompt = buildImagePrompt({ angleKey: angleType.key, project, branding, variationIndex })
+      const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
+      const imageUrl = await renderCreativoFinal(rawImageUrl, textos, branding, variationIndex)
       setCreatives(prev => prev.map(c =>
         c._key === creative._key ? { ...c, imageUrl, generating: false, generatingPhase: null } : c
       ))

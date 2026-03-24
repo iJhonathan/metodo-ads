@@ -104,8 +104,8 @@ Responde SOLO con JSON puro, sin markdown, sin explicaciones, sin bloques de có
   "titularImagen": "titular principal para mostrar EN la imagen, máximo 8 palabras, impactante, sin errores ortográficos, en español perfecto",
   "subtextoImagen": "subtexto de apoyo para mostrar EN la imagen, máximo 12 palabras, complementa el titular, en español perfecto",
   "ctaImagen": "texto del botón de llamada a la acción EN la imagen, máximo 3 palabras, en español perfecto",
-  "metaTextoPrincipal": "texto principal para publicar en Meta Ads al momento de subir el anuncio, entre 80 y 150 caracteres, conversacional, puede incluir emojis relevantes, que genere curiosidad o urgencia, que complemente la imagen sin repetir exactamente lo mismo, en español perfecto",
-  "metaTitulo": "título para Meta Ads al momento de publicar, máximo 40 caracteres, directo, que invite al clic, en español perfecto"
+  "metaTextoPrincipal": "texto principal para publicar en Meta Ads, entre 80 y 150 caracteres, conversacional, que genere curiosidad o urgencia, que complemente la imagen sin repetir lo mismo, en español perfecto. Solo incluir emojis si el tono '${branding?.tono || ''}' es informal, cercano o humorístico. Si el tono es profesional, formal o corporativo, NO usar emojis.",
+  "metaTitulo": "título para Meta Ads, máximo 40 caracteres, directo, que invite al clic, en español perfecto. No usar emojis si el tono es profesional o formal."
 }`
 
   const rawText = await callClaude({ apiKey, prompt, maxTokens: 1024 })
