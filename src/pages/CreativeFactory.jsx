@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { callClaude, extractJSON, buildCreativesPrompt, ANGLE_TYPES } from '../lib/claude'
-import { generateImage } from '../lib/gemini'
+import { generateImage, listAvailableModels, activeModel } from '../lib/gemini'
 import { buildImagePrompt } from '../utils/buildImagePrompt'
 import { compositeAd } from '../lib/composite'
 import { useAuth } from '../contexts/AuthContext'
@@ -121,6 +121,7 @@ export default function CreativeFactory() {
   const [savedCreatives, setSavedCreatives] = useState([])
   const [loadingSaved, setLoadingSaved] = useState(false)
   const [tab, setTab] = useState('factory')
+  const [currentModel, setCurrentModel] = useState('imagen-4-generate')
 
   const isGenerating = phase > 0
 
@@ -133,6 +134,12 @@ export default function CreativeFactory() {
       setProject(null); setBranding(null); setKnowledge(null); setCreatives([])
     }
   }, [projectId])
+
+  // Diagnóstico: lista modelos disponibles al cargar con API key
+  useEffect(() => {
+    const googleKey = profile?.api_key_google
+    if (googleKey) listAvailableModels(googleKey)
+  }, [profile?.api_key_google])
 
   async function loadContext(pid) {
     const [projRes, brandingRes, knowledgeRes] = await Promise.all([
@@ -232,6 +239,7 @@ export default function CreativeFactory() {
         // 1. Generar imagen de fondo
         const imgPrompt = buildImagePrompt(angle, project, branding, knowledge)
         const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
+        setCurrentModel(activeModel)
 
         // 2. Compositar texto sobre la imagen
         const compositeUrl = await compositeAd({ imageUrl: rawImageUrl, angle, branding })
@@ -384,6 +392,14 @@ export default function CreativeFactory() {
             onSelectAll={() => setSelectedAngles(new Set(ANGLE_TYPES.map(a => a.key)))}
             onClearAll={() => setSelectedAngles(new Set())}
           />
+        )}
+
+        {/* Modelo activo */}
+        {profile?.api_key_google && (
+          <div className="flex items-center gap-2 text-xs text-text-muted">
+            <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+            Modelo activo: <span className="font-mono text-text-secondary">{currentModel}</span>
+          </div>
         )}
 
         {/* Context indicators */}

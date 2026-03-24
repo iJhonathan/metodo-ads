@@ -1,24 +1,84 @@
 /**
- * Google AI Studio — Gemini imagen generation
- * Usa generateContent endpoint (distinto al predict endpoint de Imagen 4).
+ * Google AI Studio — Generación de imágenes con fallback automático.
+ *
+ * Prioridad:
+ *   1. imagen-4-generate            → endpoint :predict
+ *   2. gemini-2.5-flash-preview-image-generation → endpoint :generateContent
+ *   3. gemini-2.0-flash-preview-image-generation → endpoint :generateContent
  */
 
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-// Modelos en orden de prioridad
-const MODELS = [
-  'gemini-2.5-flash-preview-image-generation', // Principal
-  'gemini-2.0-flash-preview-image-generation', // Fallback estable
-]
+// Modelo activo en el último intento exitoso (para mostrar en UI)
+export let activeModel = 'imagen-4-generate'
 
-/**
- * Intenta generar una imagen con un modelo específico usando generateContent.
- * Retorna { dataUrl, model } o lanza error.
- */
-async function tryGenerateWithModel({ apiKey, prompt, model }) {
-  const url = `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`
+// ─────────────────────────────────────────────────────────────
+// DIAGNÓSTICO: lista todos los modelos disponibles para la API key
+// ─────────────────────────────────────────────────────────────
+export async function listAvailableModels(apiKey) {
+  try {
+    const res = await fetch(`${BASE}?key=${apiKey}`)
+    const data = await res.json()
+    const imageModels = (data.models || []).filter(m =>
+      m.name?.toLowerCase().includes('imag') ||
+      m.supportedGenerationMethods?.includes('generateContent') ||
+      m.supportedGenerationMethods?.includes('predict')
+    )
+    console.log('[gemini] MODELOS DISPONIBLES (total):', data.models?.length)
+    console.log('[gemini] MODELOS DE IMAGEN:', imageModels.map(m => ({
+      name: m.name,
+      methods: m.supportedGenerationMethods,
+    })))
+    return data
+  } catch (err) {
+    console.warn('[gemini] No se pudo listar modelos:', err.message)
+    return null
+  }
+}
 
-  console.log(`[gemini] Intentando con modelo: ${model}`)
+// ─────────────────────────────────────────────────────────────
+// Handler para modelos Imagen 4 (endpoint :predict)
+// ─────────────────────────────────────────────────────────────
+async function tryImagenPredict({ apiKey, prompt, model }) {
+  const url = `${BASE}/${model}:predict?key=${apiKey}`
+  console.log(`[gemini] Intentando ${model} (:predict)`)
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      instances: [{ prompt }],
+      parameters: {
+        sampleCount: 1,
+        aspectRatio: '1:1',
+        language: 'es',
+        safetyFilterLevel: 'block_few',
+        personGeneration: 'allow_adult',
+      },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    const error = new Error(err?.error?.message || `HTTP ${res.status}`)
+    error.status = res.status
+    throw error
+  }
+
+  const data = await res.json()
+  const b64 = data.predictions?.[0]?.bytesBase64Encoded
+  if (!b64) throw new Error('Imagen no generada (predict). Verifica tu API Key.')
+
+  console.log(`[gemini] OK con ${model} (:predict)`)
+  return `data:image/png;base64,${b64}`
+}
+
+// ─────────────────────────────────────────────────────────────
+// Handler para modelos Gemini (endpoint :generateContent)
+// ─────────────────────────────────────────────────────────────
+async function tryGeminiGenerateContent({ apiKey, prompt, model }) {
+  const url = `${BASE}/${model}:generateContent?key=${apiKey}`
+  console.log(`[gemini] Intentando ${model} (:generateContent)`)
 
   const res = await fetch(url, {
     method: 'POST',
@@ -31,101 +91,54 @@ async function tryGenerateWithModel({ apiKey, prompt, model }) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    const status = res.status
-    const msg = err?.error?.message || `HTTP ${status}`
-    const error = new Error(msg)
-    error.status = status
+    const error = new Error(err?.error?.message || `HTTP ${res.status}`)
+    error.status = res.status
     throw error
   }
 
   const data = await res.json()
   const parts = data.candidates?.[0]?.content?.parts || []
   const imagePart = parts.find(p => p.inlineData?.data)
-
-  if (!imagePart) {
-    throw new Error('El modelo no devolvió una imagen. Verifica tu API Key de Google AI Studio.')
-  }
+  if (!imagePart) throw new Error('Imagen no generada (generateContent). Verifica tu API Key.')
 
   const b64 = imagePart.inlineData.data
   const mimeType = imagePart.inlineData.mimeType || 'image/png'
-
-  console.log(`[gemini] Imagen generada con ${model} (${mimeType})`)
+  console.log(`[gemini] OK con ${model} (:generateContent) — ${mimeType}`)
   return `data:${mimeType};base64,${b64}`
 }
 
-/**
- * Genera una imagen con fallback automático entre modelos.
- * Si todos fallan con 429 o error de modelo, lanza error claro al usuario.
- */
+// ─────────────────────────────────────────────────────────────
+// Lista de modelos con su handler correspondiente
+// ─────────────────────────────────────────────────────────────
+const MODEL_CHAIN = [
+  { model: 'imagen-4-generate',                          handler: tryImagenPredict },
+  { model: 'gemini-2.5-flash-preview-image-generation',  handler: tryGeminiGenerateContent },
+  { model: 'gemini-2.0-flash-preview-image-generation',  handler: tryGeminiGenerateContent },
+]
+
+// ─────────────────────────────────────────────────────────────
+// Función principal con fallback automático
+// ─────────────────────────────────────────────────────────────
 export async function generateImage({ apiKey, prompt }) {
   let lastError = null
 
-  for (const model of MODELS) {
+  for (const { model, handler } of MODEL_CHAIN) {
     try {
-      return await tryGenerateWithModel({ apiKey, prompt, model })
+      const dataUrl = await handler({ apiKey, prompt, model })
+      activeModel = model  // actualiza el modelo activo para mostrar en UI
+      return dataUrl
     } catch (err) {
       console.warn(`[gemini] Falló ${model}: ${err.message} (status: ${err.status})`)
       lastError = err
 
-      // Solo hacer fallback en rate limit (429) o modelo no encontrado (404/400)
-      const shouldFallback = err.status === 429 || err.status === 404 || err.status === 400
+      const shouldFallback = err.status === 429 || err.status === 404 ||
+                             err.status === 400 || err.status === 403
       if (!shouldFallback) throw err
-      // Si hay más modelos en la lista, continúa al siguiente
     }
   }
 
-  // Todos los modelos fallaron
   if (lastError?.status === 429) {
     throw new Error('Límite de generaciones alcanzado. Intenta en unos minutos.')
   }
   throw new Error(lastError?.message || 'Error al generar imagen con Google AI Studio.')
-}
-
-/**
- * Construye el prompt de imagen para Meta Ads a partir del ángulo y el contexto del proyecto.
- */
-const VARIATION_HINTS = [
-  'Primary composition: direct product focus, clean background, strong hero shot.',
-  'Alternative composition: lifestyle context, environmental setting, emotional storytelling angle.',
-]
-
-export function buildImagePrompt({ angle, project, branding, variationIndex = 0 }) {
-  // Soporte para campo nuevo (imagen_concepto) y legado (visual_sugerido)
-  const visualConcept = angle.imagen_concepto || angle.visual_sugerido || ''
-  const style = branding?.estilo || 'modern'
-  const primaryColor = branding?.colores?.[0] || ''
-  const audience = branding?.publico_detallado || project?.publico || ''
-
-  const styleMap = {
-    moderno: 'modern, clean, contemporary',
-    minimalista: 'minimalist, clean white space, simple',
-    agresivo: 'bold, high contrast, dynamic, powerful',
-    elegante: 'elegant, luxury, sophisticated, premium',
-    vintage: 'vintage, retro, nostalgic, warm tones',
-    bold: 'bold, vibrant, striking, attention-grabbing',
-    corporativo: 'corporate, professional, trustworthy',
-    lifestyle: 'lifestyle, authentic, natural, warm',
-  }
-
-  const styleDesc = styleMap[style] || style
-  const variationHint = VARIATION_HINTS[variationIndex] || VARIATION_HINTS[0]
-
-  return `Professional advertising background photo for a Facebook/Instagram ad creative.
-
-Visual concept: ${visualConcept}
-Composition: ${variationHint}
-
-Product: ${project?.producto || 'product'}
-Target audience: ${audience}
-Style: ${styleDesc}
-${primaryColor ? `Accent color: ${primaryColor}` : ''}
-
-CRITICAL RULES:
-- Bottom 35% must be naturally darker (shadow, dark surface, gradient) for text legibility
-- Main subject in the upper 60-65% of the frame
-- Professional advertising photography, studio quality
-- Vivid colors, high contrast, scroll-stopping visual
-- NO text, NO words, NO letters, NO watermarks in the image
-- Square 1:1 format
-- Emotionally powerful, ${styleDesc}`
 }
