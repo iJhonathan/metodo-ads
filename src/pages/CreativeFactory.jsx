@@ -7,8 +7,6 @@ import {
 import { supabase } from '../lib/supabase'
 import { generateCreativeText, ANGLE_TYPES } from '../lib/claude'
 import { generateImage, listAvailableModels, activeModel } from '../lib/gemini'
-import { buildImagePrompt } from '../utils/buildImagePrompt'
-import { renderCreativoFinal } from '../utils/renderCreativo'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectSelector from '../components/ui/ProjectSelector'
 import CreativeCard from '../components/ui/CreativeCard'
@@ -205,16 +203,16 @@ export default function CreativeFactory() {
 
       let textos
       try {
-        textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge })
-        console.log(`[CreativeFactory] Creativo ${i + 1} — textos de Claude:`, textos)
+        textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge, variationIndex: i })
+        console.log(`[CreativeFactory] Creativo ${i + 1} — textos:`, textos)
       } catch (err) {
         // Reintentar una vez
         try {
-          textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge })
-          console.log(`[CreativeFactory] Creativo ${i + 1} — retry OK:`, textos)
-        } catch (retryErr) {
+          textos = await generateCreativeText({ apiKey: claudeKey, angle: angleType, project, branding, knowledge, variationIndex: i })
+          console.log(`[CreativeFactory] Creativo ${i + 1} — retry OK`)
+        } catch {
           setCreatives(prev => prev.map(c =>
-            c._key === key ? { ...c, generating: false, generatingPhase: null, error: `Error al generar el copy. Verifica tu API Key de Claude.` } : c
+            c._key === key ? { ...c, generating: false, generatingPhase: null, error: 'Error al generar el copy. Verifica tu API Key de Claude.' } : c
           ))
           continue
         }
@@ -227,17 +225,12 @@ export default function CreativeFactory() {
         c._key === key ? { ...c, textos, generatingPhase: 'gemini' } : c
       ))
 
-      // ── PASO 2: Gemini genera la fotografía (sin texto) ──
-      setProgress({ current: i + 1, total, label: `[Gemini] Generando fotografía de fondo...` })
+      // ── PASO 2: Gemini genera la imagen completa con el prompt de Claude ──
+      setProgress({ current: i + 1, total, label: `[Gemini] Generando imagen... "${textos.titularImagen}"` })
 
       try {
-        const imgPrompt = buildImagePrompt({ angleKey: angleType.key, project, branding, variationIndex: i })
-        const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
+        const imageUrl = await generateImage({ apiKey: googleKey, prompt: textos.promptGemini })
         setCurrentModel(activeModel)
-
-        // ── PASO 3: Canvas API superpone el texto perfectamente ──
-        setProgress({ current: i + 1, total, label: `[Canvas] Aplicando texto...` })
-        const imageUrl = await renderCreativoFinal(rawImageUrl, textos, branding, i)
 
         setCreatives(prev => prev.map(c =>
           c._key === key ? { ...c, imageUrl, generating: false, generatingPhase: null } : c
@@ -308,9 +301,7 @@ export default function CreativeFactory() {
         ))
       }
 
-      const imgPrompt = buildImagePrompt({ angleKey: angleType.key, project, branding, variationIndex })
-      const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
-      const imageUrl = await renderCreativoFinal(rawImageUrl, textos, branding, variationIndex)
+      const imageUrl = await generateImage({ apiKey: googleKey, prompt: textos.promptGemini })
       setCreatives(prev => prev.map(c =>
         c._key === creative._key ? { ...c, imageUrl, generating: false, generatingPhase: null } : c
       ))

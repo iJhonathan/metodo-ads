@@ -73,50 +73,95 @@ export const ANGLE_TYPES = [
 ]
 
 // ──────────────────────────────────────────────────────────
-// Generador de textos por creativo individual (nuevo flujo)
-// Claude genera texto → Gemini genera imagen
+// Inspiración de composición por variación (0-9)
+// ──────────────────────────────────────────────────────────
+function getEstiloInspiracion(index) {
+  const estilos = [
+    `Fotografía lifestyle exterior de día. Persona en ambiente natural. Texto en franja inferior con diseño limpio. Colores vibrantes y naturales.`,
+    `Estudio fotográfico minimalista fondo pastel o blanco. Texto grande dominante en la parte superior. Persona centrada debajo. Estilo editorial revista.`,
+    `Ambiente interior cálido y elegante. Luz de ventana natural. Panel lateral con texto sobre color de marca. Composición asimétrica.`,
+    `Fotografía dramática con iluminación de un solo punto de luz. Sin neón. Claroscuro elegante. Texto en esquina inferior con tipografía bold impactante.`,
+    `Estilo antes y después. Composición dividida. Izquierda oscura y problemática, derecha luminosa y positiva. Etiquetas ANTES y DESPUÉS en español.`,
+    `Fondo de color sólido vibrante (no oscuro). Persona recortada sin fondo. Texto grande y bold integrado con la composición. Estilo poster moderno.`,
+    `Fotografía en movimiento, persona dinámica. Texto en franja superior estilo titular de noticia urgente. Energía y acción en la composición.`,
+    `Primer plano de la persona, expresión muy cercana. Texto superpuesto con tipografía elegante. Fondo completamente desenfocado bokeh.`,
+    `Composición tipo testimonio real. Persona casual en hogar. Texto en burbuja o panel estilo post de redes. Ambiente auténtico y cercano.`,
+    `Diseño gráfico predominante. Formas geométricas de color de marca como elementos visuales. Texto integrado en las formas. Persona como elemento secundario.`,
+  ]
+  return estilos[index % estilos.length]
+}
+
+// ──────────────────────────────────────────────────────────
+// Generador de textos + prompt Gemini por creativo
+// Claude es el director creativo: genera copy Y prompt visual
 // ──────────────────────────────────────────────────────────
 
-export async function generateCreativeText({ apiKey, angle, project, branding, knowledge }) {
+export async function generateCreativeText({ apiKey, angle, project, branding, knowledge, variationIndex = 0 }) {
   const knowledgeSnippet = knowledge?.contenido?.substring(0, 400) || ''
+  const tono = branding?.tono || 'directo y urgente'
 
-  const prompt = `Eres un experto en copywriting y publicidad en Meta Ads en español con 10 años de experiencia creando anuncios de alta conversión para negocios hispanohablantes.
+  const prompt = `Eres dos cosas a la vez: un experto en copywriting de Meta Ads en español Y un director creativo publicitario que sabe describir imágenes de alta conversión para generadores de IA.
 
 DATOS DEL NEGOCIO:
 - Nombre: ${project.nombre}
 - Producto/Servicio: ${project.producto || 'No especificado'}
 - Tipo de negocio: ${project.tipo_negocio || 'No especificado'}
-- Público objetivo: ${branding?.genero || ''}, ${branding?.edad_desde || ''} a ${branding?.edad_hasta || ''} años
-- Mercado: ${branding?.mercado || 'No especificado'}
-- Descripción del cliente ideal: ${branding?.publico_detallado || 'No especificado'}
-- Tono de comunicación: ${branding?.tono || 'directo y urgente'}${knowledgeSnippet ? `\n- Información del producto: ${knowledgeSnippet}` : ''}
+- Público: ${branding?.genero || ''}, ${branding?.edad_desde || ''} a ${branding?.edad_hasta || ''} años, ${branding?.mercado || ''}
+- Cliente ideal: ${branding?.publico_detallado || 'No especificado'}
+- Tono: ${tono}
+- Estilo visual: ${branding?.estilo || 'No especificado'}
+- Colores de marca: ${branding?.colores?.join(', ') || '#7c3aed'}${knowledgeSnippet ? `\n- Info del producto: ${knowledgeSnippet}` : ''}
 
-ÁNGULO DE MARKETING A USAR:
-- Tipo: ${angle.label}
-- Estrategia: ${angle.descripcion}
+ÁNGULO: ${angle.label} — ${angle.descripcion}
+VARIACIÓN NÚMERO: ${variationIndex + 1} de 10
 
-TAREA:
-Genera el contenido de texto completo para un anuncio publicitario usando ÚNICAMENTE el ángulo indicado arriba.
+Tu tarea tiene DOS partes:
 
-Responde SOLO con JSON puro, sin markdown, sin explicaciones, sin bloques de código, solo el objeto JSON:
+PARTE 1 — COPY:
+Genera los textos del anuncio en español perfecto, sin errores ortográficos. ${tono.match(/informal|cercano|humor/i) ? 'Puedes usar emojis si refuerzan el mensaje.' : 'NO uses emojis — el tono es profesional.'}
+
+PARTE 2 — PROMPT CREATIVO PARA GEMINI:
+Escribe un prompt detallado y creativo en español para que Gemini genere la imagen publicitaria.
+El prompt debe:
+- Describir una escena fotográfica específica y única para esta variación (no genérica)
+- Indicar exactamente dónde y cómo colocar el texto en la imagen (ubicación, tamaño, color, estilo tipográfico)
+- Describir la iluminación, ambiente y composición
+- Ser visualmente diferente a las otras variaciones
+- Sonar como instrucciones de un director creativo a un fotógrafo y diseñador
+- Incluir el texto exacto que debe aparecer (copiado de los campos titularImagen, subtextoImagen y ctaImagen)
+
+Para la variación ${variationIndex + 1}, usar este estilo de composición como inspiración:
+${getEstiloInspiracion(variationIndex)}
+
+Al final del promptGemini incluye siempre:
+"Fotografía publicitaria profesional para Meta Ads, ultra-realista, alta calidad, sin marcas de agua. El texto debe estar escrito exactamente como se indica, sin cambiar ninguna letra, perfectamente legible y con diseño integrado profesionalmente en la imagen. Todo el texto visible en español."
+
+Responde SOLO con JSON puro, sin markdown, sin bloques de código, solo el objeto JSON:
 
 {
-  "titularImagen": "titular principal para mostrar EN la imagen, máximo 8 palabras, impactante, sin errores ortográficos, en español perfecto",
+  "titularImagen": "titular principal para mostrar EN la imagen, máximo 8 palabras, impactante, en español perfecto",
   "subtextoImagen": "subtexto de apoyo para mostrar EN la imagen, máximo 12 palabras, complementa el titular, en español perfecto",
-  "ctaImagen": "texto del botón de llamada a la acción EN la imagen, máximo 3 palabras, en español perfecto",
-  "metaTextoPrincipal": "texto principal para publicar en Meta Ads, entre 80 y 150 caracteres, conversacional, que genere curiosidad o urgencia, que complemente la imagen sin repetir lo mismo, en español perfecto. Solo incluir emojis si el tono '${branding?.tono || ''}' es informal, cercano o humorístico. Si el tono es profesional, formal o corporativo, NO usar emojis.",
-  "metaTitulo": "título para Meta Ads, máximo 40 caracteres, directo, que invite al clic, en español perfecto. No usar emojis si el tono es profesional o formal."
+  "ctaImagen": "texto del botón CTA EN la imagen, máximo 3 palabras, en español perfecto",
+  "metaTextoPrincipal": "texto para publicar en Meta Ads, entre 80 y 150 caracteres, conversacional, que genere curiosidad o urgencia, en español perfecto",
+  "metaTitulo": "título para Meta Ads, máximo 40 caracteres, directo, en español perfecto",
+  "promptGemini": "prompt creativo completo en español para que Gemini genere la imagen con el texto integrado de forma profesional y publicitaria"
 }`
 
-  const rawText = await callClaude({ apiKey, prompt, maxTokens: 1024 })
+  const rawText = await callClaude({ apiKey, prompt, maxTokens: 2048 })
 
   // Limpiar y parsear JSON
   let cleaned = rawText.trim().replace(/```json|```/g, '').trim()
   try {
-    return JSON.parse(cleaned)
+    const parsed = JSON.parse(cleaned)
+    console.log('[claude] promptGemini generado:', parsed.promptGemini)
+    return parsed
   } catch {
     const match = cleaned.match(/\{[\s\S]*\}/)
-    if (match) return JSON.parse(match[0])
+    if (match) {
+      const parsed = JSON.parse(match[0])
+      console.log('[claude] promptGemini generado (fallback):', parsed.promptGemini)
+      return parsed
+    }
     console.error('[claude] generateCreativeText — respuesta inválida:', rawText)
     throw new Error('Claude devolvió un formato inválido. Verifica tu API Key de Claude.')
   }
