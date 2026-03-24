@@ -10,7 +10,7 @@
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 // Modelo activo en el último intento exitoso (para mostrar en UI)
-export let activeModel = 'imagen-4.0-fast-generate-001'
+export let activeModel = 'gemini-2.5-flash-image'
 
 // ─────────────────────────────────────────────────────────────
 // DIAGNÓSTICO: lista todos los modelos disponibles para la API key
@@ -85,7 +85,7 @@ async function tryGeminiGenerateContent({ apiKey, prompt, model }) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+      generationConfig: { responseModalities: ['IMAGE', 'TEXT'], language: 'es' },
     }),
   })
 
@@ -112,10 +112,10 @@ async function tryGeminiGenerateContent({ apiKey, prompt, model }) {
 // Nombres verificados con ListModels de la API key real
 // ─────────────────────────────────────────────────────────────
 const MODEL_CHAIN = [
-  { model: 'imagen-4.0-fast-generate-001', handler: tryImagenPredict },        // Imagen 4 rápido
-  { model: 'gemini-2.5-flash-image',       handler: tryGeminiGenerateContent }, // Gemini 2.5 imagen
-  { model: 'gemini-3.1-flash-image-preview', handler: tryGeminiGenerateContent }, // Gemini 3.1 imagen
-  { model: 'imagen-4.0-generate-001',      handler: tryImagenPredict },         // Imagen 4 estándar
+  { model: 'gemini-2.5-flash-image',         handler: tryGeminiGenerateContent }, // Principal — multimodal, entiende español
+  { model: 'gemini-3.1-flash-image-preview', handler: tryGeminiGenerateContent }, // Fallback 1 — multimodal
+  { model: 'imagen-4.0-generate-001',        handler: tryImagenPredict },         // Fallback 2 — Imagen 4 estándar
+  { model: 'imagen-4.0-fast-generate-001',   handler: tryImagenPredict },         // Fallback 3 — Imagen 4 rápido
 ]
 
 // ─────────────────────────────────────────────────────────────
