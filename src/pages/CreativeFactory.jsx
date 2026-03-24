@@ -189,6 +189,12 @@ export default function CreativeFactory() {
     setCreatives([])
     setTab('factory')
 
+    // ── DIAGNÓSTICO BUG 1 ──
+    const angelosSeleccionados = [...selectedAngles]
+    console.log('=== ÁNGULOS SELECCIONADOS POR USUARIO ===')
+    console.log(angelosSeleccionados)
+    console.log('Total seleccionados:', angelosSeleccionados.length)
+
     // ── FASE 1: Claude genera los ángulos + textos ──
     setPhase(1)
     let angles = []
@@ -196,12 +202,21 @@ export default function CreativeFactory() {
       const { system, prompt } = buildCreativesPrompt({
         project, knowledge, branding,
         quantity,
-        angleTypes: [...selectedAngles],
+        angleTypes: angelosSeleccionados,
       })
       const rawText = await callClaude({ apiKey: claudeKey, system, prompt, maxTokens: 16000 })
       const parsed = extractJSON(rawText)
       angles = parsed.creativos || parsed.angulos || parsed
       if (!Array.isArray(angles) || angles.length === 0) throw new Error('Claude no devolvió creativos válidos.')
+
+      // ── DIAGNÓSTICO BUG 1 — distribución real devuelta por Claude ──
+      console.log('=== DISTRIBUCIÓN FINAL ===')
+      angles.forEach((item, i) => {
+        console.log(`Creativo ${i + 1}: ángulo = ${item.tipo}`)
+      })
+      const tiposUnicos = [...new Set(angles.map(a => a.tipo))]
+      console.log('Tipos únicos generados por Claude:', tiposUnicos)
+      console.log('Tipos que NO estaban en la selección del usuario:', tiposUnicos.filter(t => !angelosSeleccionados.includes(t)))
     } catch (err) {
       if (!abortRef.current) setError(err.message || 'Error generando textos con Claude.')
       setPhase(0)
@@ -237,7 +252,7 @@ export default function CreativeFactory() {
 
       try {
         // 1. Generar imagen de fondo
-        const imgPrompt = buildImagePrompt(angle, project, branding, knowledge)
+        const imgPrompt = buildImagePrompt(angle, project, branding, knowledge, i)
         const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
         setCurrentModel(activeModel)
 

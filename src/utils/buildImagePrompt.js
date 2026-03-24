@@ -43,31 +43,6 @@ const EXPRESION_POR_TIPO = {
   autoridad:     'expresión de expertise y profesionalismo, postura de autoridad, transmite credibilidad máxima',
 }
 
-// ── Ambiente y escena según tipo de negocio ──────────────────────────────
-const ESCENA_POR_NEGOCIO = {
-  salon_belleza: `ambiente de salón de belleza moderno y elegante, espejos con iluminación profesional cálida, productos de cabello visibles al fondo, silla de peluquería o tocador, colores cálidos y sofisticados`,
-  curso_digital: `ambiente de home office moderno y minimalista, laptop abierta con pantalla visible al fondo, iluminación de contenido digital, estantería ordenada, sensación de productividad y éxito online`,
-  ecommerce:     `fondo limpio y moderno tipo estudio fotográfico, producto del negocio visible y destacado, iluminación de estudio profesional, colores neutros o de marca`,
-  restaurante:   `ambiente gastronómico cálido y apetitoso, iluminación de restaurante elegante, colores cálidos y estimulantes, sensación de buena comida y experiencia`,
-  fitness:       `gimnasio o espacio de entrenamiento moderno, equipos de ejercicio visibles, iluminación dinámica y energética, sensación de fuerza y movimiento`,
-  inmobiliaria:  `espacio interior moderno y aspiracional, iluminación natural abundante, diseño de interiores elegante, sensación de hogar de ensueño`,
-  agencia:       `oficina moderna y creativa, ambiente de trabajo dinámico, pantallas con diseños visibles, atmósfera profesional e innovadora`,
-  retail:        `tienda moderna y bien iluminada, productos expuestos atractivamente, ambiente de compra agradable y aspiracional`,
-  medico:        `consultorio o clínica moderna y confiable, ambiente limpio y profesional, iluminación de salud y bienestar, colores que transmiten confianza y cuidado`,
-  otro:          `fondo profesional cinematográfico que representa el sector del negocio, iluminación dramática de alta calidad, ambiente que conecta emocionalmente con el público objetivo`,
-}
-
-// ── Estilo visual y paleta según branding ────────────────────────────────
-const ESTILO_VISUAL = {
-  agresivo:    `estilo oscuro y de alto impacto con luces de neón violeta y azul eléctrico, sensación cinematográfica de alta energía, contrastes muy pronunciados`,
-  moderno:     `estilo moderno y limpio con degradados azul marino a negro, elementos geométricos sutiles, sensación profesional y contemporánea`,
-  minimalista: `estilo minimalista con fondo blanco o gris claro, diseño limpio sin elementos distractores, enfoque en el sujeto y el mensaje`,
-  elegante:    `estilo de lujo con fondos oscuros y acentos dorados, atmósfera sofisticada y premium, iluminación suave y cinematográfica`,
-  vintage:     `estilo retro con tonos cálidos ámbar y sepia, textura de grano fotográfico, atmósfera nostálgica y auténtica`,
-  bold:        `estilo atrevido con colores muy saturados y complementarios, elementos gráficos dinámicos, máxima energía visual`,
-  corporativo: `estilo corporativo serio con entorno de oficina limpia, tonos azules y grises confiables, atmósfera formal y profesional`,
-  lifestyle:   `estilo de vida auténtico con luz natural dorada, entorno cotidiano y cercano, sensación cálida y real`,
-}
 
 // ── Apariencia del sujeto según mercado ──────────────────────────────────
 function construirSujeto(brandingKit) {
@@ -99,14 +74,11 @@ export function buildImagePrompt(angle, project, brandingKit, knowledge, variati
   const producto = project?.producto || project?.nombre || 'el producto'
   const tipoNegocio = project?.tipo_negocio || 'otro'
   const colores = brandingKit?.colores?.length > 0 ? brandingKit.colores.join(', ') : '#7c3aed'
-  const estiloLabel = brandingKit?.estilo || 'agresivo'
   const tonoLabel = brandingKit?.tono || 'directo y urgente'
   const extractoKnowledge = knowledge?.contenido?.substring(0, 400) || ''
 
   const sujeto = construirSujeto(brandingKit)
   const expresion = EXPRESION_POR_TIPO[tipo] || EXPRESION_POR_TIPO.dolor
-  const escena = ESCENA_POR_NEGOCIO[tipoNegocio] || ESCENA_POR_NEGOCIO.otro
-  const estiloVisual = ESTILO_VISUAL[estiloLabel] || ESTILO_VISUAL.agresivo
 
   // Para transformacion usamos siempre la composición dividida (índice 4)
   const compIndex = tipo === 'transformacion' ? 4 : (variationIndex % (COMPOSICIONES.length - 1))
@@ -116,11 +88,59 @@ export function buildImagePrompt(angle, project, brandingKit, knowledge, variati
     ? `El negocio es ${project?.nombre || producto} y ofrece ${producto}. Contexto adicional: ${extractoKnowledge}`
     : `El negocio ofrece ${producto}.`
 
+  const estilosVisualesForzados = [
+    {
+      nombre: 'editorial_revista',
+      descripcion: `Fotografía editorial estilo revista de moda o belleza. Fondo blanco o crema liso de estudio. Iluminación suave y difusa de tres puntos. Colores claros, limpios y elegantes. Cero elementos oscuros. Cero neón. Cero tecnología. Estilo Vogue o Harper's Bazaar.`,
+    },
+    {
+      nombre: 'lifestyle_exterior',
+      descripcion: `Fotografía lifestyle de exterior durante el día. Luz natural de sol o nublado suave. Fondo urbano o natural completamente desenfocado (bokeh). Colores naturales y vibrantes. Sensación de libertad y vida real. Cero elementos de estudio. Cero neón. Cero fondo oscuro.`,
+    },
+    {
+      nombre: 'calido_hogar',
+      descripcion: `Fotografía en interior de hogar cálido y acogedor. Luz cálida de ventana o lámpara. Colores tierra, beige, madera y blanco roto. Ambiente íntimo y cercano. Estilo lifestyle de hogar moderno. Cero neón. Cero fondo negro. Cero tecnología.`,
+    },
+    {
+      nombre: 'minimalista_pastel',
+      descripcion: `Fotografía minimalista con fondo de color pastel liso. Rosa palo, verde menta, azul cielo o lavanda. Iluminación uniforme y suave. Composición limpia y simple. Estilo moderno y femenino. Cero oscuridad. Cero neón. Máximo minimalismo.`,
+    },
+    {
+      nombre: 'premium_lujo',
+      descripcion: `Fotografía de producto o persona en ambiente premium. Mármol, flores blancas, detalles dorados o plateados. Iluminación suave y elegante. Colores neutros sofisticados. Sensación de exclusividad y lujo accesible. Cero neón. Cero tecnología. Pura elegancia.`,
+    },
+    {
+      nombre: 'dinamico_colorido',
+      descripcion: `Fotografía dinámica con fondo de color sólido vibrante pero NO oscuro. Amarillo mostaza, naranja cálido, rojo coral o verde esmeralda. Persona en pose dinámica y energética. Iluminación de estudio colorida pero sin neón. Estilo campaña publicitaria moderna y atrevida.`,
+    },
+    {
+      nombre: 'natural_organico',
+      descripcion: `Fotografía en ambiente natural u orgánico. Plantas, flores, madera, piedra o agua de fondo. Luz natural suave. Colores verdes, tierra y naturales. Sensación de bienestar, salud y naturaleza. Cero artificialidad. Cero neón. Cero tecnología.`,
+    },
+    {
+      nombre: 'profesional_corporativo',
+      descripcion: `Fotografía en ambiente de oficina moderna o coworking. Luz natural de ventana grande. Colores blancos, grises y azules. Persona bien vestida y segura. Ambiente de profesionalismo y confianza. Cero neón. Estilo corporativo moderno.`,
+    },
+    {
+      nombre: 'cercano_testimonial',
+      descripcion: `Fotografía estilo testimonio real de cliente satisfecho. Ambiente casual de casa o café. Luz natural. Expresión auténtica y genuina. Sensación de persona real compartiendo su experiencia. Cero producción exagerada. Cero neón. Máxima autenticidad.`,
+    },
+    {
+      nombre: 'dramatico_contraste',
+      descripcion: `Fotografía con iluminación dramática pero SIN neón. Claroscuro elegante. Un solo foco de luz cálida sobre fondo oscuro neutro (negro o gris oscuro sin colores). Estilo retrato artístico. Sin luces de color. Solo luz y sombra natural dramática.`,
+    },
+  ]
+
+  const estiloForzado = estilosVisualesForzados[variationIndex % estilosVisualesForzados.length]
+
   const prompt = `Crea una fotografía publicitaria profesional para un anuncio de Facebook e Instagram. La imagen debe verse exactamente como un anuncio real de alta conversión que aparecería en el feed de Meta Ads, no como un boceto ni una descripción.
 
 ${contextoProducto}
 
-La imagen muestra a ${sujeto} con ${expresion}. Esta persona está en el siguiente ambiente: ${escena}.
+ESTILO VISUAL OBLIGATORIO — aplica exactamente este estilo, sin desviarte:
+${estiloForzado.descripcion}
+
+La imagen muestra a ${sujeto} con ${expresion}.
 
 ${composicion}
 
@@ -131,11 +151,9 @@ Un botón de llamada a la acción dice: "${cta}"
 
 Los colores de acento de la marca son ${colores}. Úsalos en el botón de llamada a la acción, en bordes decorativos o en elementos gráficos de la imagen.
 
-El estilo general de la imagen es ${estiloVisual} con tono ${tonoLabel}.
+La imagen final debe verse como una fotografía publicitaria profesional de alta calidad para redes sociales, con una composición que detiene el scroll. Tono del anuncio: ${tonoLabel}. Sin marcas de agua. Sin texto en inglés. Sin texto técnico ni descriptivo visible. Sin etiquetas de formato ni especificaciones. Únicamente la imagen publicitaria terminada con los textos en español indicados arriba.`
 
-La imagen final debe verse como una fotografía publicitaria profesional de alta calidad para redes sociales, con iluminación cinematográfica dramática, colores vibrantes y saturados, y una composición que detiene el scroll. Sin marcas de agua. Sin texto en inglés. Sin texto técnico ni descriptivo visible. Sin etiquetas de formato ni especificaciones. Únicamente la imagen publicitaria terminada con los textos en español indicados arriba.`
-
-  console.log('[buildImagePrompt] tipo:', tipo, '| negocio:', tipoNegocio, '| estilo:', estiloLabel, '| comp:', compIndex)
+  console.log('[buildImagePrompt] tipo:', tipo, '| negocio:', tipoNegocio, '| variación:', variationIndex + 1, '| estilo:', estiloForzado.nombre, '| comp:', compIndex)
   console.log('[buildImagePrompt] titular:', textoImagen)
   console.log('[buildImagePrompt] PROMPT:\n', prompt)
 

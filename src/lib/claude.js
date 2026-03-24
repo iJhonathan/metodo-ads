@@ -95,8 +95,10 @@ Siempre respondes ÚNICAMENTE con el JSON solicitado, sin texto adicional antes 
     ? angleTypes.join(', ')
     : ANGLE_TYPES.map(a => a.key).join(', ')
 
-  const prompt = `Genera exactamente ${quantity} creativos publicitarios para Meta Ads.
-Cada creativo debe tocar un ángulo de venta diferente y estar listo para usar en Facebook e Instagram.
+  const tiposPermitidos = angleList
+  const ejemploTipo = angleTypes && angleTypes.length > 0 ? angleTypes[0] : 'dolor'
+
+  const prompt = `Genera exactamente ${quantity} creativos publicitarios para Meta Ads, listos para usar en Facebook e Instagram.
 
 **INFORMACIÓN DEL PROYECTO:**
 - Nombre: ${project.nombre}
@@ -106,32 +108,34 @@ Cada creativo debe tocar un ángulo de venta diferente y estar listo para usar e
 ${brandingInfo}
 ${knowledgeInfo}
 
-**DISTRIBUYE los ${quantity} creativos entre estos ángulos de marketing:**
-${angleList}
+**TIPOS DE ÁNGULO PERMITIDOS — LISTA EXCLUSIVA:**
+${tiposPermitidos}
+
+⚠️ REGLA ABSOLUTA: El campo "tipo" de CADA creativo DEBE ser uno de los valores de la lista anterior.
+PROHIBIDO usar cualquier tipo de ángulo que no esté en esa lista.
+Si la lista tiene un solo valor, TODOS los creativos deben usar ese mismo valor.
+Si la lista tiene varios valores, distribúyelos equitativamente entre los ${quantity} creativos.
 
 **INSTRUCCIONES POR CAMPO (lee con atención):**
 
-1. "tipo": Uno de los ángulos listados arriba.
+1. "tipo": OBLIGATORIAMENTE uno de los valores de la LISTA EXCLUSIVA de arriba. Sin excepciones.
 
 2. "texto_imagen": El TITULAR PRINCIPAL que aparecerá en LETRAS GRANDES sobre la imagen. Debe ser:
    - Impactante y directo (máximo 10 palabras)
    - Diseñado para detener el scroll y generar emoción inmediata
    - DIFERENTE al campo "titulo"
    - En español perfecto, sin errores
-   - Ejemplo: "¿Sigues sufriendo con el mismo problema?" o "Resultados reales desde el día 1"
 
 3. "subtexto_imagen": El TEXTO DE APOYO que aparece bajo el titular en la imagen. Debe ser:
    - Breve y complementario al texto_imagen (máximo 15 palabras)
    - Refuerza el titular con un beneficio o urgencia específica
    - En español perfecto, sin errores
-   - Ejemplo: "Miles de personas ya lo comprobaron. Ahora es tu turno."
 
 4. "titulo": El COPY COMPLETO para el texto del post de Facebook/Instagram. Debe ser:
    - Entre 80 y 150 caracteres
    - Incluir el beneficio principal y un gancho de curiosidad o urgencia
    - MÁS largo y descriptivo que texto_imagen
    - En español perfecto, sin errores
-   - Ejemplo: "¿Cansado de gastar en tratamientos que no funcionan? Esta solución natural te da resultados en 30 días o te devolvemos tu dinero."
 
 5. "cta": Texto MUY CORTO para el botón de llamada a la acción. Debe ser:
    - En MAYÚSCULAS
@@ -141,13 +145,13 @@ ${angleList}
 **REGLAS CRÍTICAS:**
 - Todos los textos en español DEBEN estar perfectamente escritos sin errores gramaticales
 - texto_imagen, subtexto_imagen y titulo SIEMPRE deben ser textos DIFERENTES entre sí
-- Varía el estilo y enfoque entre creativos, no repitas fórmulas
+- Varía el copy entre creativos del mismo tipo, no repitas frases idénticas
 
 Responde SOLO con este JSON (sin texto adicional):
 {
   "creativos": [
     {
-      "tipo": "dolor",
+      "tipo": "${ejemploTipo}",
       "texto_imagen": "...",
       "subtexto_imagen": "...",
       "titulo": "...",
