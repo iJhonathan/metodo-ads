@@ -133,28 +133,80 @@ export function buildImagePrompt(angle, project, brandingKit, knowledge, variati
 
   const estiloForzado = estilosVisualesForzados[variationIndex % estilosVisualesForzados.length]
 
+  const estilosTexto = [
+    {
+      nombre: 'titular_grande_top',
+      descripcion: `El titular ocupa la parte superior de la imagen en letras muy grandes y bold. Color blanco con sombra negra fuerte. El subtexto debajo del titular en letras medianas. Persona en la mitad inferior. Fondo oscuro semitransparente detrás del texto.`,
+    },
+    {
+      nombre: 'texto_inferior_limpio',
+      descripcion: `La persona ocupa el 70% superior de la imagen sin texto. En la parte inferior hay una franja de color sólido (usar color de marca) con el titular en blanco bold y el subtexto debajo en blanco regular. Limpio y moderno.`,
+    },
+    {
+      nombre: 'texto_lateral_derecho',
+      descripcion: `La persona está en el lado izquierdo. En el lado derecho hay un bloque de texto vertical con el titular en letras grandes de color oscuro sobre fondo claro o viceversa. Composición tipo revista.`,
+    },
+    {
+      nombre: 'titulo_outline_contrastante',
+      descripcion: `El titular usa tipografía outline (solo borde, sin relleno) en color llamativo sobre fondo de imagen. El subtexto en letras sólidas pequeñas debajo. Estilo moderno y atrevido.`,
+    },
+    {
+      nombre: 'franja_central_colorida',
+      descripcion: `Una franja horizontal de color sólido vibrante (color de marca) atraviesa el centro de la imagen. El titular está dentro de esa franja en letras blancas bold. La persona asoma por arriba y por abajo de la franja.`,
+    },
+    {
+      nombre: 'texto_grande_fondo',
+      descripcion: `El titular está escrito muy grande cubriendo casi toda la imagen como fondo tipográfico, en color muy transparente. Sobre ese texto de fondo, la persona en primer plano y el titular real en letras más pequeñas y legibles.`,
+    },
+    {
+      nombre: 'estilo_noticia',
+      descripcion: `Franja negra en la parte superior con el titular en letras blancas bold, como un titular de periódico o noticia. Debajo la imagen con la persona. En la parte inferior una franja más delgada con el subtexto y el CTA.`,
+    },
+    {
+      nombre: 'texto_esquina_inferior_izquierda',
+      descripcion: `Todo el texto está agrupado en la esquina inferior izquierda sobre un fondo oscuro semitransparente redondeado. Titular bold grande, subtexto pequeño, botón CTA. La persona ocupa el resto de la imagen.`,
+    },
+    {
+      nombre: 'tipografia_color_marca',
+      descripcion: `El titular en el color principal de la marca (no blanco) sobre fondo claro o neutro. Letras grandes, bold, muy legibles. El subtexto en gris oscuro. Estilo limpio tipo landing page.`,
+    },
+    {
+      nombre: 'texto_centrado_overlay',
+      descripcion: `Todo el texto centrado horizontalmente en la imagen. Titular grande arriba, subtexto en el medio, botón CTA abajo. La persona de fondo ligeramente desenfocada o con overlay oscuro para que el texto sea legible. Estilo póster cinematográfico.`,
+    },
+  ]
+
+  const estiloTexto = estilosTexto[variationIndex % estilosTexto.length]
+
+  console.log('[buildImagePrompt] tipo:', tipo, '| negocio:', tipoNegocio, '| variación:', variationIndex + 1, '| visual:', estiloForzado.nombre, '| tipografía:', estiloTexto.nombre, '| comp:', compIndex)
+  console.log('[buildImagePrompt] titular:', textoImagen, '| subtexto:', subtextoImagen, '| cta:', cta)
+
   const prompt = `Crea una fotografía publicitaria profesional para un anuncio de Facebook e Instagram. La imagen debe verse exactamente como un anuncio real de alta conversión que aparecería en el feed de Meta Ads, no como un boceto ni una descripción.
 
 ${contextoProducto}
 
-ESTILO VISUAL OBLIGATORIO — aplica exactamente este estilo, sin desviarte:
+ESTILO VISUAL OBLIGATORIO — aplica exactamente este estilo fotográfico, sin desviarte:
 ${estiloForzado.descripcion}
 
 La imagen muestra a ${sujeto} con ${expresion}.
 
 ${composicion}
 
-Sobre la imagen aparecen estos textos publicitarios en español:
-El titular principal aparece en letras grandes, negritas y de alto contraste: "${textoImagen}"
-${subtextoImagen ? `El texto secundario aparece en letras más pequeñas pero legibles: "${subtextoImagen}"` : ''}
-Un botón de llamada a la acción dice: "${cta}"
+TEXTO QUE DEBE APARECER EN LA IMAGEN — cópialo exactamente, letra por letra, sin cambiar ni una sola letra, sin reinterpretar, sin corregir, sin traducir, sin modificar de ninguna manera:
 
-Los colores de acento de la marca son ${colores}. Úsalos en el botón de llamada a la acción, en bordes decorativos o en elementos gráficos de la imagen.
+TEXTO PRINCIPAL (cópialo exactamente): "${textoImagen}"
+${subtextoImagen ? `TEXTO SECUNDARIO (cópialo exactamente): "${subtextoImagen}"` : ''}
+BOTÓN DE ACCIÓN (cópialo exactamente): "${cta}"
 
-La imagen final debe verse como una fotografía publicitaria profesional de alta calidad para redes sociales, con una composición que detiene el scroll. Tono del anuncio: ${tonoLabel}. Sin marcas de agua. Sin texto en inglés. Sin texto técnico ni descriptivo visible. Sin etiquetas de formato ni especificaciones. Únicamente la imagen publicitaria terminada con los textos en español indicados arriba.`
+IMPORTANTE SOBRE EL TEXTO: Estos textos están escritos en español correcto. Debes reproducirlos tal como están escritos, letra por letra, sin ninguna modificación ortográfica, sin inventar palabras, sin cambiar letras.
 
-  console.log('[buildImagePrompt] tipo:', tipo, '| negocio:', tipoNegocio, '| variación:', variationIndex + 1, '| estilo:', estiloForzado.nombre, '| comp:', compIndex)
-  console.log('[buildImagePrompt] titular:', textoImagen)
+DISEÑO TIPOGRÁFICO OBLIGATORIO PARA ESTE CREATIVO:
+${estiloTexto.descripcion}
+
+Los colores de acento de la marca son ${colores}. Úsalos en el botón de acción y en elementos decorativos.
+
+La imagen final debe verse como un anuncio publicitario profesional de alta calidad para redes sociales, con una composición que detiene el scroll. Tono: ${tonoLabel}. Sin marcas de agua. Sin texto en inglés. Únicamente la imagen publicitaria terminada con los textos exactos en español indicados arriba.`
+
   console.log('[buildImagePrompt] PROMPT:\n', prompt)
 
   return prompt

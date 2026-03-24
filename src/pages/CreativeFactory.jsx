@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabase'
 import { callClaude, extractJSON, buildCreativesPrompt, ANGLE_TYPES } from '../lib/claude'
 import { generateImage, listAvailableModels, activeModel } from '../lib/gemini'
 import { buildImagePrompt } from '../utils/buildImagePrompt'
-import { compositeAd } from '../lib/composite'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectSelector from '../components/ui/ProjectSelector'
 import CreativeCard from '../components/ui/CreativeCard'
@@ -251,16 +250,13 @@ export default function CreativeFactory() {
       })
 
       try {
-        // 1. Generar imagen de fondo
+        // Generar imagen (Gemini ya incluye el texto en la imagen)
         const imgPrompt = buildImagePrompt(angle, project, branding, knowledge, i)
-        const rawImageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
+        const imageUrl = await generateImage({ apiKey: googleKey, prompt: imgPrompt })
         setCurrentModel(activeModel)
 
-        // 2. Compositar texto sobre la imagen
-        const compositeUrl = await compositeAd({ imageUrl: rawImageUrl, angle, branding })
-
         setCreatives(prev => prev.map(c =>
-          c._key === key ? { ...c, imageUrl: compositeUrl, generating: false } : c
+          c._key === key ? { ...c, imageUrl, generating: false } : c
         ))
       } catch (err) {
         setCreatives(prev => prev.map(c =>
@@ -314,10 +310,9 @@ export default function CreativeFactory() {
     ))
     try {
       const imgPrompt = buildImagePrompt(creative.angle, project, branding, knowledge)
-      const rawImageUrl = await generateImage({ apiKey, prompt: imgPrompt })
-      const compositeUrl = await compositeAd({ imageUrl: rawImageUrl, angle: creative.angle, branding })
+      const imageUrl = await generateImage({ apiKey, prompt: imgPrompt })
       setCreatives(prev => prev.map(c =>
-        c._key === creative._key ? { ...c, imageUrl: compositeUrl, generating: false } : c
+        c._key === creative._key ? { ...c, imageUrl, generating: false } : c
       ))
     } catch (err) {
       setCreatives(prev => prev.map(c =>
